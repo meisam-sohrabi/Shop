@@ -68,7 +68,7 @@ namespace InventoryService.Api.Helper
 
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
-                    Title = "Shop",
+                    Title = "InventoryService.Api",
                     Version = "v1",
                     Description = "",
                     Contact = new OpenApiContact

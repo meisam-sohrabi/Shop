@@ -8,7 +8,7 @@ namespace AccountService.Infrastructure.EntityFrameWorkCore.EntityConfigurations
     {
         public void Configure(EntityTypeBuilder<PermissionEntity> builder)
         {
-            builder.ToTable("Permissions");
+            builder.ToTable("Permissions","User");
             builder.HasKey(p => p.Id);// Permission can be unique 
             builder.Property(p => p.Resource).IsRequired();
             builder.Property(p => p.Action).IsRequired();

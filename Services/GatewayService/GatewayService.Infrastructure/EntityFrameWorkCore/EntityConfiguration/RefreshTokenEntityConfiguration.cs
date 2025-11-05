@@ -8,7 +8,7 @@ namespace GatewayService.Infrastructure.EntityFrameWorkCore.EntityConfiguration
     {
         public void Configure(EntityTypeBuilder<RefreshTokenEntity> builder)
         {
-            builder.ToTable("RefreshToken");
+            builder.ToTable("RefreshToken","Auth");
             builder.HasKey(e => e.Id);
             builder.Property(e => e.Token).IsRequired();
             builder.Property(e => e.UserId).IsRequired();

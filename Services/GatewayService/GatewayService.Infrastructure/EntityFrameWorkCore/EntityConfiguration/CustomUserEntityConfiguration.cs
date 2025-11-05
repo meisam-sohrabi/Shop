@@ -9,6 +9,7 @@ namespace GatewayService.Infrastructure.EntityFrameWorkCore.EntityConfiguration
         public void Configure(EntityTypeBuilder<CustomUserEntity> builder)
         {
             builder.HasKey(c => c.Id);
+            builder.Ignore(c => c.Token);
             builder.ToTable("AspNetUsers", c => c.ExcludeFromMigrations());
         }
     }

@@ -6,11 +6,11 @@ using System.Text.Json;
 
 namespace ProductService.Application.Services.RabbitMq.Inentory
 {
-    public class RabbitInventoryPublisherAppService : IRabbitInventoryPublisherAppService
+    public class InventoryPublisherAppService : IInventoryPublisherAppService
     {
-        private readonly ILogger<RabbitInventoryPublisherAppService> _logger;
+        private readonly ILogger<InventoryPublisherAppService> _logger;
 
-        public RabbitInventoryPublisherAppService(ILogger<RabbitInventoryPublisherAppService> logger)
+        public InventoryPublisherAppService(ILogger<InventoryPublisherAppService> logger)
         {
             _logger = logger;
         }
@@ -24,17 +24,17 @@ namespace ProductService.Application.Services.RabbitMq.Inentory
 
                 using var channel = await connection.CreateChannelAsync();
 
-                await channel.ExchangeDeclareAsync(exchange: "PlaceOrder-Exchange", type: ExchangeType.Direct, durable: true, autoDelete: false, arguments: null);
+                await channel.ExchangeDeclareAsync(exchange: "Inventory-Exchange", type: ExchangeType.Direct, durable: true, autoDelete: false, arguments: null);
 
-                await channel.QueueDeclareAsync(queue: "PlaceOrder-Queue", durable: true, exclusive: false, autoDelete: false, arguments: null);
+                await channel.QueueDeclareAsync(queue: "Inventory-Queue", durable: true, exclusive: false, autoDelete: false, arguments: null);
 
-                await channel.QueueBindAsync(queue: "PlaceOrder-Queue", exchange: "PlaceOrder-Exchange", routingKey: "PlaceOrder-RoutingKey", arguments: null);
+                await channel.QueueBindAsync(queue: "Inventory-Queue", exchange: "Inventory-Exchange", routingKey: "Inventory-RoutingKey", arguments: null);
 
                 var messageBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(value));
 
                 var properties = new BasicProperties { Persistent = true };
 
-                await channel.BasicPublishAsync(exchange: "PlaceOrder-Exchange", routingKey: "PlaceOrder-RoutingKey", mandatory: true, basicProperties: properties, body: messageBody);
+                await channel.BasicPublishAsync(exchange: "Inventory-Exchange", routingKey: "Inventory-RoutingKey", mandatory: true, basicProperties: properties, body: messageBody);
 
                 await channel.CloseAsync();
 

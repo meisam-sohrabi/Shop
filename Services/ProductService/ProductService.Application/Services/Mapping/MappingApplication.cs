@@ -2,8 +2,6 @@
 using ProductService.ApplicationContract.DTO.Category;
 using ProductService.ApplicationContract.DTO.Product;
 using ProductService.ApplicationContract.DTO.ProductBrand;
-using ProductService.ApplicationContract.DTO.ProductDetail;
-
 using ProductService.Domain.Entities;
 
 namespace ProductService.Application.Services.Mapping
@@ -15,7 +13,6 @@ namespace ProductService.Application.Services.Mapping
             CreateMap<CategoryDto, CategoryEntity>();
             CreateMap<ProductRequestDto, ProductEntity>();
             CreateMap<ProductBrandDto, ProductBrandEntity>();
-            CreateMap<ProductDetailRequestDto, ProductDetailEntity>();
         }
     }
 }

@@ -20,6 +20,7 @@ using ProductService.Infrastructure.EntityFrameWorkCore.Repository.Command.Categ
 using ProductService.Infrastructure.EntityFrameWorkCore.Repository.Command.Product;
 using ProductService.Infrastructure.EntityFrameWorkCore.Repository.Command.ProductBrand;
 using ProductService.Infrastructure.EntityFrameWorkCore.Repository.Command.ProductDetail;
+using ProductService.Infrastructure.EntityFrameWorkCore.Repository.Command.ProductImage;
 using ProductService.Infrastructure.EntityFrameWorkCore.Repository.Query.Category;
 using ProductService.Infrastructure.EntityFrameWorkCore.Repository.Query.Product;
 using ProductService.Infrastructure.EntityFrameWorkCore.Repository.Query.ProductBrand;
@@ -30,6 +31,7 @@ using ProductService.InfrastructureContract.Interfaces.Command.Category;
 using ProductService.InfrastructureContract.Interfaces.Command.Product;
 using ProductService.InfrastructureContract.Interfaces.Command.ProductBrand;
 using ProductService.InfrastructureContract.Interfaces.Command.ProductDetail;
+using ProductService.InfrastructureContract.Interfaces.Command.ProductImage;
 using ProductService.InfrastructureContract.Interfaces.Query.Category;
 using ProductService.InfrastructureContract.Interfaces.Query.Product;
 using ProductService.InfrastructureContract.Interfaces.Query.ProductBrand;
@@ -52,6 +54,7 @@ namespace ProductService.IocConfig
             services.AddScoped<IProductBrandCommandRepository, ProductBrandCommandRepository>();
             services.AddScoped<IProductBrandQueryRepository, ProductBrandQueryRepository>();
             services.AddScoped<IProductDetailQueryRepository, ProductDetailQueryRepository>();
+            services.AddScoped<IProductImageCommandRepository, ProductImageCommandRepository>();
             //services.AddScoped<ICookieAppService, CookieAppService>();
             services.AddSingleton<ILogAppService, LogAppService>(); // log should be singleton
             services.AddScoped<ICategoryAppService, CategoryAppService>();
@@ -60,8 +63,8 @@ namespace ProductService.IocConfig
             services.AddScoped<IProductDetailAppService, ProductDetailAppService>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<ICacheAdapter, DistributedCacheAdapter>();
-            services.AddSingleton<IRabbitPricePublisherAppService, RabbitPricePublisherAppService>();
-            services.AddSingleton<IRabbitInventoryPublisherAppService, RabbitInventoryPublisherAppService>();
+            services.AddScoped<IPricePublisherAppService, PricePublisherAppService>();
+            services.AddScoped<IInventoryPublisherAppService, InventoryPublisherAppService>();
             //services.AddScoped(typeof(IStimulsoftAppService<>), typeof(StimulsoftAppService<>));
             return services;
         }

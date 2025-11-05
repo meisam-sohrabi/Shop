@@ -8,5 +8,7 @@ namespace GatewayService.ApplicationContract.DTO.Base
         public bool Success { get; set; }
         public HttpStatusCode StatusCode { get; set; }
         public T? Data { get; set; }
+        public IDictionary<string, string[]>? ValidationErrors { get; set; }
+
     }
 }

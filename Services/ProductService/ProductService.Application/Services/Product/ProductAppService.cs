@@ -9,6 +9,7 @@ using ProductService.ApplicationContract.DTO.Base;
 using ProductService.ApplicationContract.DTO.Inventory;
 using ProductService.ApplicationContract.DTO.Price;
 using ProductService.ApplicationContract.DTO.Product;
+using ProductService.ApplicationContract.DTO.ProductImage;
 using ProductService.ApplicationContract.DTO.Search;
 using ProductService.ApplicationContract.DTO.Transaction;
 using ProductService.ApplicationContract.Interfaces.Product;
@@ -18,6 +19,7 @@ using ProductService.Domain.Entities;
 using ProductService.InfrastructureContract.Interfaces;
 using ProductService.InfrastructureContract.Interfaces.Command.Product;
 using ProductService.InfrastructureContract.Interfaces.Command.ProductDetail;
+using ProductService.InfrastructureContract.Interfaces.Command.ProductImage;
 using ProductService.InfrastructureContract.Interfaces.Query.Category;
 using ProductService.InfrastructureContract.Interfaces.Query.Product;
 using ProductService.InfrastructureContract.Interfaces.Query.ProductBrand;
@@ -39,11 +41,12 @@ namespace ProductService.Application.Services.Product
         private readonly ICacheAdapter _cacheAdapter;
         private readonly ILogger<ProductAppService> _logger;
         private readonly IValidator<ProductRequestDto> _productValidator;
-        private readonly IValidator<ProductTransactionDto> _productTransactionValidator;
+        private readonly IValidator<ProductTransactionServiceDto> _productTransactionValidator;
         private readonly IValidator<ProductArabicToPersianDto> _productArabicToPersianValidator;
-        private readonly IRabbitPricePublisherAppService _rabbitPublishPrice;
-        private readonly IRabbitInventoryPublisherAppService _rabbitPublishInventory;
+        private readonly IPricePublisherAppService _rabbitPublishPrice;
+        private readonly IInventoryPublisherAppService _rabbitPublishInventory;
         private readonly IUserAppService _userService;
+        private readonly IProductImageCommandRepository _productImageCommandRepository;
 
         public ProductAppService(IProductQueryRespository productQueryRespository,
             IProductCommandRepository productCommandRepository,
@@ -54,11 +57,12 @@ namespace ProductService.Application.Services.Product
             , ICacheAdapter cacheAdapter
             , ILogger<ProductAppService> logger
             , IValidator<ProductRequestDto> Productvalidator
-            , IValidator<ProductTransactionDto> productTransactionValidator
-            ,IValidator<ProductArabicToPersianDto> productArabicToPersianValidator
-            ,IRabbitPricePublisherAppService rabbitPublishPrice
-            ,IRabbitInventoryPublisherAppService rabbitPublishInventory
-            ,IUserAppService userService)
+            , IValidator<ProductTransactionServiceDto> productTransactionValidator
+            , IValidator<ProductArabicToPersianDto> productArabicToPersianValidator
+            , IPricePublisherAppService rabbitPublishPrice
+            , IInventoryPublisherAppService rabbitPublishInventory
+            , IUserAppService userService
+            ,IProductImageCommandRepository productImageCommandRepository)
         {
             _productQueryRespository = productQueryRespository;
             _productCommandRepository = productCommandRepository;
@@ -76,6 +80,7 @@ namespace ProductService.Application.Services.Product
             _rabbitPublishPrice = rabbitPublishPrice;
             _rabbitPublishInventory = rabbitPublishInventory;
             _userService = userService;
+            _productImageCommandRepository = productImageCommandRepository;
         }
 
 
@@ -398,9 +403,9 @@ namespace ProductService.Application.Services.Product
         #endregion
 
         #region Transaction
-        public async Task<BaseResponseDto<ProductTransactionDto>> ProductTransaction(ProductTransactionDto productTransactionDto, int categoryId, int productBrandId)
+        public async Task<BaseResponseDto<ProductTransactionServiceDto>> ProductTransaction(ProductTransactionServiceDto productTransactionDto, int categoryId, int productBrandId)
         {
-            var output = new BaseResponseDto<ProductTransactionDto>
+            var output = new BaseResponseDto<ProductTransactionServiceDto>
             {
                 Message = "خطا در درج اطلاعات",
                 Success = false,
@@ -442,54 +447,44 @@ namespace ProductService.Application.Services.Product
                 await _unitOfWork.BeginTransactionAsync();
 
 
-                var product = _mapper.Map<ProductEntity>(productTransactionDto.Product);
-                product.CategoryId = categoryExist.Id;
-                product.ProductBrandId = brandExist.Id;
-                product.CreateBy = _userService.GetCurrentUser();
+                var product = new ProductEntity
+                {
+                    Name = productTransactionDto.ProductName,
+                    Description = productTransactionDto.ProductDescription,
+                    CategoryId = categoryExist.Id,
+                    ProductBrandId = brandExist.Id,
+                    Quantity = productTransactionDto.ProductQuantity,
+                    CreateBy = _userService.GetCurrentUser()
+                };
                 _productCommandRepository.Add(product);
                 await _unitOfWork.SaveChangesAsync();
 
-                var detail = _mapper.Map<ProductDetailEntity>(productTransactionDto.ProductDetail);
-                detail.ProductId = product.Id;
-                detail.CreateBy = _userService.GetCurrentUser();
+                var detail = new ProductDetailEntity
+                {
+                    Color = productTransactionDto.Color,
+                    Size = productTransactionDto.Size,
+                    Description = productTransactionDto.DetailDescription,
+                    ProductId = product.Id,
+                    CreateBy = _userService.GetCurrentUser()
+                };
                 _productDetailCommandRepository.Add(detail);
                 await _unitOfWork.SaveChangesAsync();
 
-                if (productTransactionDto.ProductImage.ImageUrl != null)
+
+                var image = new ProductImageEntity
                 {
-                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
-                    var fileExtension = Path.GetExtension(productTransactionDto.ProductImage.ImageUrl.FileName);
-                    if (productTransactionDto.ProductImage.ImageUrl.Length > 1048576)
-                    {
-                        throw new Exception("حجم فایل تصویر بیشتر از ۱ مگابایت است");
+                    ImageUrl = productTransactionDto.ImageUrl,
+                    ProductDetailId = detail.Id,
+                    CreateBy = _userService.GetCurrentUser()
+                };
+               await _productImageCommandRepository.AddAsync(image);
 
-                    }
-                    if (!allowedExtensions.Contains(fileExtension.ToLower()))
-                    {
-                        throw new Exception("نوع فایل نامعتبر است");
-                    }
 
-                    var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "userimage");
-                    if (!Directory.Exists(uploadFolder))
-                    {
-                        Directory.CreateDirectory(uploadFolder);
-                    }
-                    var fileName = Guid.NewGuid().ToString() + fileExtension;
-                    var url = Path.Combine(uploadFolder, fileName);
-                    using (var fileStream = new FileStream(url, FileMode.Create))
-                    {
-                        await productTransactionDto.ProductImage.ImageUrl.CopyToAsync(fileStream);
-                    }
-
-                    var image = _mapper.Map<ProductImageEntity>(productTransactionDto.ProductImage);
-                    image.ProductDetailId = detail.Id;
-                    image.CreateBy = _userService.GetCurrentUser();
-                }
-
-               var sentPrice = await _rabbitPublishPrice.PublishMessage(new PriceToPublishDto
+                var sentPrice = await _rabbitPublishPrice.PublishMessage(new PriceToPublishDto
                 {
                     ProductDetailId = detail.Id,
                     Price = productTransactionDto.Price,
+                    UserId = _userService.GetCurrentUser()
                 });
 
                 if (!sentPrice)
@@ -501,6 +496,7 @@ namespace ProductService.Application.Services.Product
                 {
                     QuantityChange = +product.Quantity,
                     ProductId = product.Id,
+                    UserId = _userService.GetCurrentUser()
                 });
 
                 if (!sentInventory)

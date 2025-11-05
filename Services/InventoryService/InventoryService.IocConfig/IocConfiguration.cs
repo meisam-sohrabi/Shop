@@ -1,4 +1,5 @@
 ﻿//using InventoryService.Application.Services.Mapping;
+using InventoryService.Application.Services.RabbitInventory;
 using InventoryService.Infrastructure.EntityFrameWorkCore.AppDbContext;
 using InventoryService.Infrastructure.EntityFrameWorkCore.Repository.Command.ProductInventory;
 using InventoryService.Infrastructure.EntityFrameWorkCore.UnitOfWork;
@@ -14,8 +15,8 @@ namespace InventoryService.IocConfig
             services.AddDbContext<ApplicationDbContext>();
             //services.AddAutoMapper(typeof(MappingApplication).Assembly);
             services.AddScoped<IProductInventoryCommandRepository, ProductInventoryCommandRepository>();
+            services.AddHostedService<InventoryConsumerAppService>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
-            //services.AddSingleton<IRabbitPublisherAppService,>();
             return services;
         }
     }

@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
 using ProductService.ApplicationContract.DTO.ProductDetail;
 
-namespace ProductService.ApplicationContract.Validators.Product
+namespace ShopService.ApplicationContract.Validators.Product
 {
     public class ProductDetailDtoValidator : AbstractValidator<ProductDetailRequestDto>
     {

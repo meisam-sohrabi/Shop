@@ -8,7 +8,7 @@ namespace GatewayService.Infrastructure.EntityFrameWorkCore.EntityConfiguration
     {
         public void Configure(EntityTypeBuilder<UserSessionEntity> builder)
         {
-            builder.ToTable("UserSessions");
+            builder.ToTable("UserSessions", "Auth");
             builder.HasKey(e => e.Id);
         }
     }

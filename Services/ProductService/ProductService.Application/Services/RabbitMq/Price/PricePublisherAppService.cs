@@ -6,11 +6,11 @@ using System.Text.Json;
 
 namespace ProductService.Application.Services.RabbitMq.Price
 {
-    public class RabbitPricePublisherAppService : IRabbitPricePublisherAppService
+    public class PricePublisherAppService : IPricePublisherAppService
     {
-        private readonly ILogger<RabbitPricePublisherAppService> _logger;
+        private readonly ILogger<PricePublisherAppService> _logger;
 
-        public RabbitPricePublisherAppService(ILogger<RabbitPricePublisherAppService> logger)
+        public PricePublisherAppService(ILogger<PricePublisherAppService> logger)
         {
             _logger = logger;
         }
@@ -30,7 +30,7 @@ namespace ProductService.Application.Services.RabbitMq.Price
 
                 await channel.QueueDeclareAsync(queue: "Price-Publish-Queue", durable: true, exclusive: false, autoDelete: false, arguments: null);
 
-                await channel.QueueBindAsync(queue: "Price-Publish-Queuee", exchange: "Price-Publish-Exchange", routingKey: "Price-Publish-RoutingKey", arguments: null);
+                await channel.QueueBindAsync(queue: "Price-Publish-Queue", exchange: "Price-Publish-Exchange", routingKey: "Price-Publish-RoutingKey", arguments: null);
 
                 var messageBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(value));
 

@@ -2,9 +2,10 @@
 {
     public static class ApplicaitonConfiguration
     {
-        public const string gateway_accountConnectionSqlString = "Server=.;Database=Gateway_AccountDb;Trusted_Connection=True;TrustServerCertificate=True;";
+        public const string gateway_accountConnectionSqlString = "Server=.;Database=AccountDb;Trusted_Connection=True;TrustServerCertificate=True;";
         public const string ProductConnectionSqlString = "Server=.;Database=ProductDb;Trusted_Connection=True;TrustServerCertificate=True;";
-        public const string InventoryConnectionSqlString = "Server=.;Database=InventoryDb;Trusted_Connection=True;TrustServerCertificate=True;";
+        public const string InventoryConnectionSqlString = "Server=.;Database=ProductInventoryDb;Trusted_Connection=True;TrustServerCertificate=True;";
+        public const string PriceConnectionSqlString = "Server=.;Database=ProductPriceDb;Trusted_Connection=True;TrustServerCertificate=True;";
         public const string jwtKey = "Practice123@#23&*JJsadfifghfghsdrddfduwer93234rIHw";
         public const string jwtIssuer = "localhost.com";
         public const string jwtAudience = "localhost.com";

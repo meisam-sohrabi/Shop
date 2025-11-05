@@ -1,6 +1,6 @@
 ﻿namespace ProductService.ApplicationContract.Interfaces.RabbitMq.Price
 {
-    public interface IRabbitPricePublisherAppService
+    public interface IPricePublisherAppService
     {
         Task<bool> PublishMessage<T>(T value);
     }

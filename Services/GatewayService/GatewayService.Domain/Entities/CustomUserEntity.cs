@@ -6,7 +6,7 @@
         public string FullName { get; set; }
         public string UserName { get; set; }
         public string PasswordHash { get; set; }
-        //public RefreshTokenEntity RefreshToken { get; set; }
 
+        public RefreshTokenEntity Token { get; set; }
     }
 }

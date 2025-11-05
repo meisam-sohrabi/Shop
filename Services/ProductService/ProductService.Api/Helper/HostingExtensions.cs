@@ -82,7 +82,7 @@ namespace ProductService.Api.Helper
 
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
-                    Title = "Shop",
+                    Title = "ShopService.Api",
                     Version = "v1",
                     Description = "",
                     Contact = new OpenApiContact
@@ -92,6 +92,7 @@ namespace ProductService.Api.Helper
                     },
                 });
             });
+
             builder.Host.UseSerilog();
             builder.Services.AddStackExchangeRedisCache(option =>
             {
@@ -136,7 +137,7 @@ namespace ProductService.Api.Helper
                 app.UseSwaggerUI();
             }
             app.UseHttpsRedirection();
-
+            app.UseStaticFiles();
             app.UseAuthentication();
             app.UseAuthorization();
             //app.MapHub<ServerConnection>("/printorder");

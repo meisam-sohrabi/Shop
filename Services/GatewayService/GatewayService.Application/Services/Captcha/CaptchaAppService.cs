@@ -49,7 +49,7 @@ namespace GatewayService.Application.Services.Captcha
         private static readonly Random _rand = new Random();
         private readonly IHttpContextAccessor _httpContext;
         private const string _chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        public CaptchaAppService(IHttpContextAccessor httpContext)
+        public  CaptchaAppService(IHttpContextAccessor httpContext)
         {
             _httpContext = httpContext;
         }
@@ -63,7 +63,7 @@ namespace GatewayService.Application.Services.Captcha
         /// </summary>
         /// <param name="length">طول رشته کپچا (پیش‌فرض 6)</param>
         /// <returns>CaptchaResponseDto شامل Code و ImageBase64</returns>
-        public CaptchaResponseDto GenerateCaptcha(int length = 6)
+        public  CaptchaResponseDto GenerateCaptcha(int length = 6)
         {
             // تولید رشته تصادفی کپچا
             var code = GenerateCode(length);
@@ -128,7 +128,7 @@ namespace GatewayService.Application.Services.Captcha
         #region GenerateCode
 
         // متد ساخت کد تصادفی 
-        private string GenerateCode(int length)
+        private static string GenerateCode(int length)
         {
             char[] code = new char[length];
             for (int i = 0; i < length; i++)

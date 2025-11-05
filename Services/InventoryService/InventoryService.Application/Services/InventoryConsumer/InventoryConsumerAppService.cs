@@ -2,6 +2,7 @@
 using InventoryService.Domain.Entities;
 using InventoryService.InfrastructureContract.Interfaces;
 using InventoryService.InfrastructureContract.Interfaces.Command.ProductInventory;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Polly;
 using RabbitMQ.Client;
@@ -11,17 +12,15 @@ using System.Text.Json;
 
 namespace InventoryService.Application.Services.RabbitInventory
 {
-    public class RabbitInventoryConsumerAppService : BackgroundService
+    public class InventoryConsumerAppService : BackgroundService
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IProductInventoryCommandRepository _productInventoryCommandRepository;
+        private readonly IServiceScopeFactory _scopeFactory;
         private IConnection? _connection;
         private IChannel? _channel;
 
-        public RabbitInventoryConsumerAppService(IUnitOfWork unitOfWork, IProductInventoryCommandRepository productInventoryCommandRepository)
+        public InventoryConsumerAppService(IServiceScopeFactory scopeFactory)
         {
-            _unitOfWork = unitOfWork;
-            _productInventoryCommandRepository = productInventoryCommandRepository;
+            _scopeFactory = scopeFactory;
         }
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
@@ -41,11 +40,11 @@ namespace InventoryService.Application.Services.RabbitInventory
                   });
 
                 _channel = await _connection.CreateChannelAsync();
-                await _channel.ExchangeDeclareAsync(exchange: "PlaceOrder-Exchange", type: ExchangeType.Direct, durable: true, autoDelete: false, arguments: null);
+                await _channel.ExchangeDeclareAsync(exchange: "Inventory-Exchange", type: ExchangeType.Direct, durable: true, autoDelete: false, arguments: null);
 
-                await _channel.QueueDeclareAsync(queue: "PlaceOrder-Queue", durable: true, exclusive: false, autoDelete: false, arguments: null);
+                await _channel.QueueDeclareAsync(queue: "Inventory-Queue", durable: true, exclusive: false, autoDelete: false, arguments: null);
 
-                await _channel.QueueBindAsync(queue: "PlaceOrder-Queue", exchange: "PlaceOrder-Exchange", routingKey: "PlaceOrder-RoutingKey", arguments: null);
+                await _channel.QueueBindAsync(queue: "Inventory-Queue", exchange: "Inventory-Exchange", routingKey: "Inventory-RoutingKey", arguments: null);
             }
             catch (Exception ex)
             {
@@ -66,6 +65,9 @@ namespace InventoryService.Application.Services.RabbitInventory
 
             consumer.ReceivedAsync += async (model, ea) =>
             {
+                using var scope = _scopeFactory.CreateScope();
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+                var productRepo = scope.ServiceProvider.GetRequiredService<IProductInventoryCommandRepository>();
                 try
                 {
                     var body = ea.Body.ToArray();
@@ -80,10 +82,11 @@ namespace InventoryService.Application.Services.RabbitInventory
                     var inventory = new ProductInventoryEntity
                     {
                         QuantityChange = data.QuantityChange,
-                        ProductId = data.ProductId
+                        ProductId = data.ProductId,
+                        CreateBy = data.UserId
                     };
-                    await _productInventoryCommandRepository.AddAsync(inventory);
-                    await _unitOfWork.SaveChangesAsync();
+                    await productRepo.AddAsync(inventory);
+                    await unitOfWork.SaveChangesAsync();
 
                     await _channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
                 }
@@ -93,7 +96,7 @@ namespace InventoryService.Application.Services.RabbitInventory
                     await _channel.BasicNackAsync(ea.DeliveryTag, false, requeue: true);
                 }
             };
-            await _channel.BasicConsumeAsync(queue: "PlaceOrder-Queue", autoAck: false, consumer: consumer);
+            await _channel.BasicConsumeAsync(queue: "Inventory-Queue", autoAck: false, consumer: consumer);
             await Task.Delay(Timeout.Infinite, stoppingToken);
 
         }

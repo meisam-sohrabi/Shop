@@ -8,7 +8,7 @@ namespace InventoryService.Infrastructure.EntityFrameWorkCore.EntityConfiguratio
     {
         public void Configure(EntityTypeBuilder<ProductInventoryEntity> builder)
         {
-            builder.ToTable("Inventory","Inventory");
+            builder.ToTable("ProductInventory","Inventory");
             builder.HasKey(k => k.Id);
             builder.Property(p => p.QuantityChange).IsRequired();
         }

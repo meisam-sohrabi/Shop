@@ -32,4 +32,8 @@
     <ProjectReference Include="..\ProductService.IocConfig\ProductService.IocConfig.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\ProductImages\" />
+  </ItemGroup>
+
 </Project>

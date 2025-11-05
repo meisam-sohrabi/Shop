@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProductService.Api.Dto;
+using ProductService.Api.Helper;
 //using ProductService.Application.Services.PermissionAttribute;
 using ProductService.ApplicationContract.DTO.Base;
 using ProductService.ApplicationContract.DTO.Product;
 using ProductService.ApplicationContract.DTO.Search;
 using ProductService.ApplicationContract.DTO.Transaction;
 using ProductService.ApplicationContract.Interfaces.Product;
-
 namespace ProductService.Api.Controllers
 {
     [Route("[controller]")]
@@ -24,9 +25,21 @@ namespace ProductService.Api.Controllers
         [HttpPost("ProductTransaction")]
         [Authorize(Roles = "admin")]
         //[Permission]
-        public async Task<BaseResponseDto<ProductTransactionDto>> ProductTransaction([FromBody] ProductTransactionDto productTransactionDto, [FromQuery] int categoryId, [FromQuery] int productBrandId)
+        public async Task<BaseResponseDto<ProductTransactionServiceDto>> ProductTransaction([FromForm] ProductTransactionRequestDto productTransactionDto, [FromQuery] int categoryId, [FromQuery] int productBrandId)
         {
-            return await _productAppService.ProductTransaction(productTransactionDto, categoryId, productBrandId);
+            var url = await FileStorage.SaveFileAsync(productTransactionDto.File);
+            var transactionService = new ProductTransactionServiceDto
+            {
+                ProductName = productTransactionDto.ProductName,
+                ProductDescription = productTransactionDto.ProductDescription,
+                ProductQuantity = productTransactionDto.ProductQuantity,
+                Size = productTransactionDto.Size,
+                Color = productTransactionDto.Color,
+                DetailDescription = productTransactionDto.DetailDescription,
+                Price = productTransactionDto.Price,
+                ImageUrl = url
+            };
+            return await _productAppService.ProductTransaction(transactionService, categoryId, productBrandId);
         }
 
         [HttpPost("Edit/{id}")]
@@ -45,7 +58,7 @@ namespace ProductService.Api.Controllers
         [HttpGet("StoredProcedureGetAll")]
         public async Task<BaseResponseDto<List<ProductWithInventoryDto>>> StoreProcedureGetAll([FromQuery] string? search, [FromQuery] DateTime? start, [FromQuery] DateTime? end)
         {
-            return await _productAppService.GetProductWithInventory(search,start,end);
+            return await _productAppService.GetProductWithInventory(search, start, end);
         }
 
         [HttpPost("StoredProcedureEditAToP")]

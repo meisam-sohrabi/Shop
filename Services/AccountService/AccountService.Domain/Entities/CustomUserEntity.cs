@@ -6,7 +6,5 @@ namespace AccountService.Domain.Entities
     {
         public string FullName { get; set; }
         public ICollection<UserPermissoinEntity> UserPermissions { get; set; } = new List<UserPermissoinEntity>();
-
-
     }
 }

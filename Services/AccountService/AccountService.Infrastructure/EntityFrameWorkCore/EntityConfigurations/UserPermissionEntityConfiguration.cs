@@ -8,7 +8,7 @@ namespace AccountService.Infrastructure.EntityFrameWorkCore.EntityConfigurations
     {
         public void Configure(EntityTypeBuilder<UserPermissoinEntity> builder)
         {
-            builder.ToTable("UserPermissions");
+            builder.ToTable("UserPermissions","User");
             builder.HasKey(up => new { up.PermissionId, up.UserId });
 
             builder.HasOne(up => up.User)

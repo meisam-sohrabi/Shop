@@ -1,4 +1,5 @@
 ﻿using BaseConfig;
+using FluentValidation;
 using GatewayService.ApplicationContract.DTO.Auth;
 using GatewayService.ApplicationContract.DTO.Base;
 using GatewayService.ApplicationContract.DTO.Token;
@@ -39,6 +40,7 @@ namespace GatewayService.Application.Services.Auth
         private readonly IPasswordHasher<CustomUserEntity> _passwordHasher;
         private readonly IHttpContextAccessor _httpContext;
         private readonly ICaptchaAppService _captchaAppService;
+        private readonly IValidator<LoginDto> _loginValidator;
 
         public AuthAppService(IAuthQueryRrepository authQueryRrepository, IConfiguration configuration
             , IRoleQueryRepository roleQueryRepository
@@ -51,7 +53,8 @@ namespace GatewayService.Application.Services.Auth
             , IUserAppService userAppService
             , IPasswordHasher<CustomUserEntity> passwordHasher
             , IHttpContextAccessor httpContext
-            , ICaptchaAppService captchaAppService)
+            , ICaptchaAppService captchaAppService
+            ,IValidator<LoginDto> loginValidator)
         {
             _authQueryRrepository = authQueryRrepository;
             _configuration = configuration;
@@ -66,6 +69,7 @@ namespace GatewayService.Application.Services.Auth
             _passwordHasher = passwordHasher;
             _httpContext = httpContext;
             _captchaAppService = captchaAppService;
+            _loginValidator = loginValidator;
         }
 
         #region Login
@@ -89,6 +93,15 @@ namespace GatewayService.Application.Services.Auth
                 StatusCode = HttpStatusCode.BadRequest
             };
 
+            var validationResult = await _loginValidator.ValidateAsync(loginDto);
+            if (!validationResult.IsValid)
+            {
+                output.Message = "خطاهای اعتبارسنجی رخ داده است.";
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.BadRequest;
+                output.ValidationErrors = validationResult.ToDictionary();
+                return output;
+            }
 
             // ---------- بررسی وضعیت کپچا قبل از ورود ----------
 
@@ -332,7 +345,7 @@ namespace GatewayService.Application.Services.Auth
             audience: ApplicaitonConfiguration.jwtAudience,
             claims: claims,
             notBefore: DateTime.UtcNow,
-            expires: DateTime.UtcNow.AddMinutes(5),
+            expires: DateTime.UtcNow.AddMinutes(60),
             signingCredentials: signingKey
 
             );

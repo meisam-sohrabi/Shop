@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PricingService.Application\PricingService.Application.csproj" />
+    <ProjectReference Include="..\PricingService.Infrastructure\PricingService.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>

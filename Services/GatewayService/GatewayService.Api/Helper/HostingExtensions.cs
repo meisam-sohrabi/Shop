@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using BaseConfig;
+using FluentValidation;
+using GatewayService.Application.Services.Auth;
+using GatewayService.ApplicationContract.Interfaces.Auth;
+using GatewayService.ApplicationContract.Validations;
+using GatewayService.IocConfig;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using GatewayService.IocConfig;
-using BaseConfig;
-using GatewayService.ApplicationContract.Interfaces.Auth;
-using GatewayService.Application.Services.Auth;
 namespace GatewayService.Api.Helper
 {
     public static class HostingExtensions
@@ -88,6 +90,10 @@ namespace GatewayService.Api.Helper
                 option.Cookie.HttpOnly = true;
                 option.Cookie.IsEssential = true;
             });
+
+
+            builder.Services.AddValidatorsFromAssemblyContaining<LoginDtoValidator>();
+
 
             return builder.Build();
         }
