@@ -9,6 +9,7 @@ using AccountService.InfrastructureContract.Interfaces.Command.Role;
 using AccountService.InfrastructureContract.Interfaces.Query.Account;
 using AccountService.InfrastructureContract.Interfaces.Query.Role;
 using AutoMapper;
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
@@ -24,6 +25,7 @@ namespace AccountService.Application.Services.Account
         private readonly IRoleCommandRepository _roleCommandRepository;
         private readonly IRoleQueryRepository _roleQueryRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IValidator<CreateUserDto> _createUserValidator;
 
         public AccountAppService(IAccountCommandRepository accountCommandRepository
             , IAccountQueryRepository accountQueryRepository
@@ -31,7 +33,8 @@ namespace AccountService.Application.Services.Account
             , IMapper mapper
             , IRoleCommandRepository roleCommandRepository
             , IRoleQueryRepository roleQueryRepository,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork
+            ,IValidator<CreateUserDto> createUserValidator)
         {
             _accountCommandRepository = accountCommandRepository;
             _accountQueryRepository = accountQueryRepository;
@@ -40,6 +43,7 @@ namespace AccountService.Application.Services.Account
             _roleCommandRepository = roleCommandRepository;
             _roleQueryRepository = roleQueryRepository;
             _unitOfWork = unitOfWork;
+            _createUserValidator = createUserValidator;
         }
 
         #region Create
@@ -51,6 +55,15 @@ namespace AccountService.Application.Services.Account
                 Success = false,
                 StatusCode = HttpStatusCode.BadRequest
             };
+            var validationResult = await _createUserValidator.ValidateAsync(createUserDto);
+            if (!validationResult.IsValid)
+            {
+                output.Message = "خطاهای اعتبارسنجی رخ داده است.";
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.BadRequest;
+                output.ValidationErrors = validationResult.ToDictionary();
+                return output;
+            }
             var identityUser = new CustomUserEntity
             {
                 FullName = createUserDto.FullName,

@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
+﻿using AccountService.ApplicationContract.DTO.Account;
 using AccountService.ApplicationContract.DTO.Base;
 using AccountService.ApplicationContract.DTO.Permission;
 using AccountService.ApplicationContract.DTO.UserPermission;
@@ -9,6 +8,9 @@ using AccountService.InfrastructureContract.Interfaces;
 using AccountService.InfrastructureContract.Interfaces.Command.Permission;
 using AccountService.InfrastructureContract.Interfaces.Query.Account;
 using AccountService.InfrastructureContract.Interfaces.Query.Permission;
+using AutoMapper;
+using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 
 namespace AccountService.Application.Services.Permission
@@ -20,16 +22,19 @@ namespace AccountService.Application.Services.Permission
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAccountQueryRepository _accountQueryRepository;
+        private readonly IValidator<PermissionDto> _permissionValidator;
 
         public PermissionAppService(IPermissionCommandRepository permissionCommandRepository
             , IPermissionQueryRepository permissionQueryRepository, IMapper mapper, IUnitOfWork unitOfWork
-            , IAccountQueryRepository accountQueryRepository)
+            , IAccountQueryRepository accountQueryRepository
+            ,IValidator<PermissionDto> permissionValidator)
         {
             _permissionCommandRepository = permissionCommandRepository;
             _permissionQueryRepository = permissionQueryRepository;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _accountQueryRepository = accountQueryRepository;
+            _permissionValidator = permissionValidator;
         }
 
 
@@ -42,6 +47,15 @@ namespace AccountService.Application.Services.Permission
                 Success = false,
                 StatusCode = HttpStatusCode.BadRequest
             };
+            var validationResult = await _permissionValidator.ValidateAsync(permissionDto);
+            if (!validationResult.IsValid)
+            {
+                output.Message = "خطاهای اعتبارسنجی رخ داده است.";
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.BadRequest;
+                output.ValidationErrors = validationResult.ToDictionary();
+                return output;
+            }
             var permissionExist = await _permissionQueryRepository.GetQueryable().AnyAsync(c => c.Resource == permissionDto.Resource && c.Action == permissionDto.Action);
             if (permissionExist)
             {
@@ -101,6 +115,15 @@ namespace AccountService.Application.Services.Permission
                 Success = false,
                 StatusCode = HttpStatusCode.BadRequest
             };
+            var validationResult = await _permissionValidator.ValidateAsync(permissionDto);
+            if (!validationResult.IsValid)
+            {
+                output.Message = "خطاهای اعتبارسنجی رخ داده است.";
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.BadRequest;
+                output.ValidationErrors = validationResult.ToDictionary();
+                return output;
+            }
             var permissionExist = await _permissionQueryRepository.GetQueryable().FirstOrDefaultAsync(c => c.Id == id);
             if (permissionExist == null)
             {

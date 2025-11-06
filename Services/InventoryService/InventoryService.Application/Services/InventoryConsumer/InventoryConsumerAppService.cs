@@ -4,7 +4,6 @@ using InventoryService.InfrastructureContract.Interfaces;
 using InventoryService.InfrastructureContract.Interfaces.Command.ProductInventory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
@@ -15,101 +14,104 @@ namespace InventoryService.Application.Services.RabbitInventory
     public class InventoryConsumerAppService : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
-        private IConnection? _connection;
-        private IChannel? _channel;
 
         public InventoryConsumerAppService(IServiceScopeFactory scopeFactory)
         {
             _scopeFactory = scopeFactory;
         }
-        public override async Task StartAsync(CancellationToken cancellationToken)
-        {
-
-            var factory = new ConnectionFactory() { HostName = "localhost" };
-
-
-            var retryPolicy = Policy
-                .Handle<Exception>()
-                .WaitAndRetry(retryCount: 3, sleepDurationProvider: attempt => TimeSpan.FromMinutes(1));
-
-            try
-            {
-                await retryPolicy.Execute(async () =>
-                  {
-                      _connection = await factory.CreateConnectionAsync();
-                  });
-
-                _channel = await _connection.CreateChannelAsync();
-                await _channel.ExchangeDeclareAsync(exchange: "Inventory-Exchange", type: ExchangeType.Direct, durable: true, autoDelete: false, arguments: null);
-
-                await _channel.QueueDeclareAsync(queue: "Inventory-Queue", durable: true, exclusive: false, autoDelete: false, arguments: null);
-
-                await _channel.QueueBindAsync(queue: "Inventory-Queue", exchange: "Inventory-Exchange", routingKey: "Inventory-RoutingKey", arguments: null);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"FATAL: Failed to connect to RabbitMQ after all retries. Service initialization failed: {ex.Message}");
-            }
-
-            await base.StartAsync(cancellationToken);
-        }
-
 
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
 
-            stoppingToken.ThrowIfCancellationRequested();
+            var factory = new ConnectionFactory() { HostName = "localhost" };
 
-            var consumer = new AsyncEventingBasicConsumer(_channel);
-
-            consumer.ReceivedAsync += async (model, ea) =>
+            while (!stoppingToken.IsCancellationRequested)
             {
-                using var scope = _scopeFactory.CreateScope();
-                var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-                var productRepo = scope.ServiceProvider.GetRequiredService<IProductInventoryCommandRepository>();
                 try
                 {
-                    var body = ea.Body.ToArray();
-                    var message = Encoding.UTF8.GetString(body);
-                    var data = JsonSerializer.Deserialize<ProductInventoryRequestDto>(message);
-                    if (data == null || data.ProductId == 0)
-                    {
-                        Console.WriteLine("Received invalid or incomplete message.");
-                        await _channel.BasicNackAsync(ea.DeliveryTag, false, requeue: false);
-                        return;
-                    }
-                    var inventory = new ProductInventoryEntity
-                    {
-                        QuantityChange = data.QuantityChange,
-                        ProductId = data.ProductId,
-                        CreateBy = data.UserId
-                    };
-                    await productRepo.AddAsync(inventory);
-                    await unitOfWork.SaveChangesAsync();
+                    // اتصال و کانال
+                    using var connection = await factory.CreateConnectionAsync(stoppingToken);
+                    using var channel = await connection.CreateChannelAsync();
 
-                    await _channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
+                    await channel.ExchangeDeclareAsync(
+                        exchange: "Inventory-Exchange",
+                        type: ExchangeType.Direct,
+                        durable: true,
+                        autoDelete: false,
+                        arguments: null);
+
+                    await channel.QueueDeclareAsync(
+                        queue: "Inventory-Queue",
+                        durable: true,
+                        exclusive: false,
+                        autoDelete: false,
+                        arguments: null);
+
+                    await channel.QueueBindAsync(
+                        queue: "Inventory-Queue",
+                        exchange: "Inventory-Exchange",
+                        routingKey: "Inventory-RoutingKey");
+
+                    Console.WriteLine(" Connected to RabbitMQ and ready to consume.");
+
+                    var consumer = new AsyncEventingBasicConsumer(channel);
+                    consumer.ReceivedAsync += async (model, ea) =>
+                    {
+                        using var scope = _scopeFactory.CreateScope();
+                        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+                        var repo = scope.ServiceProvider.GetRequiredService<IProductInventoryCommandRepository>();
+
+                        try
+                        {
+                            var body = ea.Body.ToArray();
+                            var message = Encoding.UTF8.GetString(body);
+                            var data = JsonSerializer.Deserialize<ProductInventoryRequestDto>(message);
+
+                            if (data == null || data.ProductId == 0)
+                            {
+                                Console.WriteLine("Invalid message received.");
+                                await channel.BasicNackAsync(ea.DeliveryTag, false, requeue: false);
+                                return;
+                            }
+
+                            var entity = new ProductInventoryEntity
+                            {
+                                ProductId = data.ProductId,
+                                QuantityChange = data.QuantityChange,
+                                CreateBy = data.UserId
+                            };
+
+                            await repo.AddAsync(entity);
+                            await unitOfWork.SaveChangesAsync();
+                            await channel.BasicAckAsync(ea.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error processing message: {ex.Message}");
+                            await channel.BasicNackAsync(ea.DeliveryTag, false, requeue: true);
+                        }
+                    };
+
+                    await channel.BasicConsumeAsync("Inventory-Queue", false, consumer);
+
+                    // دلیل وجود این حلقه تکراری برای حفظ ارتباط هستش و جلوگیری از ساخت کانسیومر جدید
+                    // مدیریت ریسورس
+                    while (channel.IsOpen && !channel.IsClosed && !stoppingToken.IsCancellationRequested)
+                    {
+                        await Task.Delay(1000, stoppingToken);
+                    }
+
+                    Console.WriteLine("Channel or connection closed. Reconnecting...");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error processing message: {ex.Message}");
-                    await _channel.BasicNackAsync(ea.DeliveryTag, false, requeue: true);
+                    Console.WriteLine($"RabbitMQ connection failed: {ex.Message}");
                 }
-            };
-            await _channel.BasicConsumeAsync(queue: "Inventory-Queue", autoAck: false, consumer: consumer);
-            await Task.Delay(Timeout.Infinite, stoppingToken);
 
-        }
-
-
-        public override async Task StopAsync(CancellationToken cancellationToken)
-        {
-            if (_channel != null && _channel.IsOpen)
-                await _channel.CloseAsync();
-
-            if (_connection != null && _connection.IsOpen)
-                await _connection.CloseAsync();
-            await base.StopAsync(cancellationToken);
+                // وقتی که ارتباط قطع شد 5 ثانیه صبر کن و مجدد تلاش کن
+                await Task.Delay(5000, stoppingToken);
+            }
         }
 
     }

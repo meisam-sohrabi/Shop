@@ -2,6 +2,8 @@
 {
     public class ProductTransactionServiceDto
     {
+        public int categoryId { get; set; }
+        public int productBrandId { get; set; }
         public string ProductName { get; set; }
         public string ProductDescription { get; set; }
         public int ProductQuantity { get; set; }

@@ -25,7 +25,7 @@ namespace ProductService.Api.Controllers
         [HttpPost("ProductTransaction")]
         [Authorize(Roles = "admin")]
         //[Permission]
-        public async Task<BaseResponseDto<ProductTransactionServiceDto>> ProductTransaction([FromForm] ProductTransactionRequestDto productTransactionDto, [FromQuery] int categoryId, [FromQuery] int productBrandId)
+        public async Task<BaseResponseDto<ProductTransactionServiceDto>> ProductTransaction([FromForm] ProductTransactionRequestDto productTransactionDto)
         {
             var url = await FileStorage.SaveFileAsync(productTransactionDto.File);
             var transactionService = new ProductTransactionServiceDto
@@ -39,7 +39,7 @@ namespace ProductService.Api.Controllers
                 Price = productTransactionDto.Price,
                 ImageUrl = url
             };
-            return await _productAppService.ProductTransaction(transactionService, categoryId, productBrandId);
+            return await _productAppService.ProductTransaction(transactionService);
         }
 
         [HttpPost("Edit/{id}")]

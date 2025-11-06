@@ -21,6 +21,7 @@ namespace ProductService.Infrastructure.EntityFrameWorkCore.AppDbContext
         public DbSet<ProductBrandEntity> ProductBrands { get; set; }
         public DbSet<ProductDetailEntity> ProductDetails { get; set; }
         public DbSet<ProductImageEntity> ProductImages { get; set; }
+        public DbSet<OutBoxMessagesEntity> OutBox { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
 

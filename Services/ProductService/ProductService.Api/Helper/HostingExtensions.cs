@@ -13,6 +13,7 @@ using Serilog.Sinks.Elasticsearch;
 using ProductService.ApplicationContract.Validators.Category;
 using ProductService.IocConfig;
 using System.Text;
+using ProductService.Application.Services.OutBoxProcessors;
 namespace ProductService.Api.Helper
 {
     public static class HostingExtensions
@@ -92,6 +93,9 @@ namespace ProductService.Api.Helper
                     },
                 });
             });
+
+            builder.Services.AddHostedService<OutBoxPriceProcessor>();
+            builder.Services.AddHostedService<OutBoxInentoryProcessor>();
 
             builder.Host.UseSerilog();
             builder.Services.AddStackExchangeRedisCache(option =>

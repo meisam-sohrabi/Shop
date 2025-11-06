@@ -28,6 +28,14 @@ namespace ProductService.ApplicationContract.Validators.Product
                 .NotNull().WithMessage("Price is required.")
                 .NotEmpty().WithMessage("Price is required.")
                 .GreaterThan(0).WithMessage("Price should be postive number.");
+
+            RuleFor(c => c.categoryId)
+                .NotNull().WithMessage("categoryId is required.")
+                .NotEmpty().WithMessage("categoryId is required.");
+
+            RuleFor(c=> c.productBrandId)
+                .NotNull().WithMessage("productBrandId is required.")
+                .NotEmpty().WithMessage("productBrandId is required.");
         }
     }
 }

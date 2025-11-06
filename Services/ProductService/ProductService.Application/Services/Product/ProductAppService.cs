@@ -1,15 +1,13 @@
 ﻿using AutoMapper;
-using Azure;
 using FluentValidation;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using ProductService.ApplicationContract;
 using ProductService.ApplicationContract.DTO.Base;
 using ProductService.ApplicationContract.DTO.Inventory;
 using ProductService.ApplicationContract.DTO.Price;
 using ProductService.ApplicationContract.DTO.Product;
-using ProductService.ApplicationContract.DTO.ProductImage;
 using ProductService.ApplicationContract.DTO.Search;
 using ProductService.ApplicationContract.DTO.Transaction;
 using ProductService.ApplicationContract.Interfaces.Product;
@@ -17,6 +15,7 @@ using ProductService.ApplicationContract.Interfaces.RabbitMq.Inventory;
 using ProductService.ApplicationContract.Interfaces.RabbitMq.Price;
 using ProductService.Domain.Entities;
 using ProductService.InfrastructureContract.Interfaces;
+using ProductService.InfrastructureContract.Interfaces.Command.OutBox;
 using ProductService.InfrastructureContract.Interfaces.Command.Product;
 using ProductService.InfrastructureContract.Interfaces.Command.ProductDetail;
 using ProductService.InfrastructureContract.Interfaces.Command.ProductImage;
@@ -43,10 +42,9 @@ namespace ProductService.Application.Services.Product
         private readonly IValidator<ProductRequestDto> _productValidator;
         private readonly IValidator<ProductTransactionServiceDto> _productTransactionValidator;
         private readonly IValidator<ProductArabicToPersianDto> _productArabicToPersianValidator;
-        private readonly IPricePublisherAppService _rabbitPublishPrice;
-        private readonly IInventoryPublisherAppService _rabbitPublishInventory;
         private readonly IUserAppService _userService;
         private readonly IProductImageCommandRepository _productImageCommandRepository;
+        private readonly IOutBoxCommandRepository _outBoxCommandRepository;
 
         public ProductAppService(IProductQueryRespository productQueryRespository,
             IProductCommandRepository productCommandRepository,
@@ -59,10 +57,9 @@ namespace ProductService.Application.Services.Product
             , IValidator<ProductRequestDto> Productvalidator
             , IValidator<ProductTransactionServiceDto> productTransactionValidator
             , IValidator<ProductArabicToPersianDto> productArabicToPersianValidator
-            , IPricePublisherAppService rabbitPublishPrice
-            , IInventoryPublisherAppService rabbitPublishInventory
             , IUserAppService userService
-            ,IProductImageCommandRepository productImageCommandRepository)
+            , IProductImageCommandRepository productImageCommandRepository
+            , IOutBoxCommandRepository outBoxCommandRepository)
         {
             _productQueryRespository = productQueryRespository;
             _productCommandRepository = productCommandRepository;
@@ -77,10 +74,9 @@ namespace ProductService.Application.Services.Product
             _productValidator = Productvalidator;
             _productTransactionValidator = productTransactionValidator;
             _productArabicToPersianValidator = productArabicToPersianValidator;
-            _rabbitPublishPrice = rabbitPublishPrice;
-            _rabbitPublishInventory = rabbitPublishInventory;
             _userService = userService;
             _productImageCommandRepository = productImageCommandRepository;
+            _outBoxCommandRepository = outBoxCommandRepository;
         }
 
 
@@ -403,7 +399,7 @@ namespace ProductService.Application.Services.Product
         #endregion
 
         #region Transaction
-        public async Task<BaseResponseDto<ProductTransactionServiceDto>> ProductTransaction(ProductTransactionServiceDto productTransactionDto, int categoryId, int productBrandId)
+        public async Task<BaseResponseDto<ProductTransactionServiceDto>> ProductTransaction(ProductTransactionServiceDto productTransactionDto)
         {
             var output = new BaseResponseDto<ProductTransactionServiceDto>
             {
@@ -427,90 +423,63 @@ namespace ProductService.Application.Services.Product
             try
             {
                 var categoryExist = await _categoryQueryRepository.GetQueryable()
-                    .FirstOrDefaultAsync(c => c.Id == categoryId);
-                if (categoryExist == null)
-                {
-                    output.Message = "دسته بندی یافت نشد";
-                    output.Success = false;
-                    output.StatusCode = HttpStatusCode.NotFound;
-                    return output;
-                }
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == productTransactionDto.categoryId);
                 var brandExist = await _productBrandQueryRepository.GetQueryable()
-                    .FirstOrDefaultAsync(b => b.Id == productBrandId);
-                if (brandExist == null)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(b => b.Id == productTransactionDto.productBrandId);
+                if (categoryExist == null || brandExist == null)
                 {
-                    output.Message = "برند یافت نشد";
+                    output.Message = brandExist == null ? "برند یافت نشد" : "دسته بندی یافت نشد";
                     output.Success = false;
                     output.StatusCode = HttpStatusCode.NotFound;
                     return output;
                 }
+
                 await _unitOfWork.BeginTransactionAsync();
 
+                var ProductExist = await _productQueryRespository.GetQueryable()
+                    .Where(c => c.Name.Equals(productTransactionDto.ProductName) || c.Description.Equals(productTransactionDto.ProductDescription))
+                    .Where(c => c.CategoryId == categoryExist.Id)
+                    .FirstOrDefaultAsync();
 
-                var product = new ProductEntity
+                if (ProductExist == null)
                 {
-                    Name = productTransactionDto.ProductName,
-                    Description = productTransactionDto.ProductDescription,
-                    CategoryId = categoryExist.Id,
-                    ProductBrandId = brandExist.Id,
-                    Quantity = productTransactionDto.ProductQuantity,
-                    CreateBy = _userService.GetCurrentUser()
-                };
-                _productCommandRepository.Add(product);
-                await _unitOfWork.SaveChangesAsync();
+                    var product = new ProductEntity
+                    {
+                        Name = productTransactionDto.ProductName,
+                        Description = productTransactionDto.ProductDescription,
+                        CategoryId = categoryExist.Id,
+                        ProductBrandId = brandExist.Id,
+                        Quantity = productTransactionDto.ProductQuantity,
+                        CreateBy = _userService.GetCurrentUser()
+                    };
+                    _productCommandRepository.Add(product);
+                    await _unitOfWork.SaveChangesAsync();
 
-                var detail = new ProductDetailEntity
-                {
-                    Color = productTransactionDto.Color,
-                    Size = productTransactionDto.Size,
-                    Description = productTransactionDto.DetailDescription,
-                    ProductId = product.Id,
-                    CreateBy = _userService.GetCurrentUser()
-                };
-                _productDetailCommandRepository.Add(detail);
-                await _unitOfWork.SaveChangesAsync();
+                    var detail = await AddProductDetailAndImageAsync(productTransactionDto, product);
+                    await AddOutboxMessagesAsync(productTransactionDto, product, detail);
 
-
-                var image = new ProductImageEntity
-                {
-                    ImageUrl = productTransactionDto.ImageUrl,
-                    ProductDetailId = detail.Id,
-                    CreateBy = _userService.GetCurrentUser()
-                };
-               await _productImageCommandRepository.AddAsync(image);
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitTransactionAsync();
+                    output.Message = "محصول  با موفقیت ایجاد شد";
+                    output.Success = true;
+                    output.StatusCode = HttpStatusCode.Created;
 
 
-                var sentPrice = await _rabbitPublishPrice.PublishMessage(new PriceToPublishDto
-                {
-                    ProductDetailId = detail.Id,
-                    Price = productTransactionDto.Price,
-                    UserId = _userService.GetCurrentUser()
-                });
-
-                if (!sentPrice)
-                {
-                    throw new Exception("خطا در ثبت قیمت");
                 }
-
-                var sentInventory = await _rabbitPublishInventory.PublishMessage(new InventoryAddToPublishDto
+                else
                 {
-                    QuantityChange = +product.Quantity,
-                    ProductId = product.Id,
-                    UserId = _userService.GetCurrentUser()
-                });
+                    // در صورت وجود محصول فقط جزیات و عکس ذخیره شود
+                    var detail = await AddProductDetailAndImageAsync(productTransactionDto, ProductExist);
+                    await AddOutboxMessagesAsync(productTransactionDto, ProductExist, detail);
 
-                if (!sentInventory)
-                {
-                    throw new Exception("خطا در ثبت انبار");
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitTransactionAsync();
+                    output.Message = "محصول  با موفقیت ایجاد شد";
+                    output.Success = true;
+                    output.StatusCode = HttpStatusCode.Created;
                 }
-
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
-
-                output.Message = "محصول  با موفقیت ایجاد شد";
-                output.Success = true;
-                output.StatusCode = HttpStatusCode.Created;
-
             }
             catch (Exception ex)
             {
@@ -523,6 +492,70 @@ namespace ProductService.Application.Services.Product
             }
             return output;
         }
+
+        #region DetailAndImagePrivateMethod
+        private async Task<ProductDetailEntity> AddProductDetailAndImageAsync(ProductTransactionServiceDto dto, ProductEntity product)
+        {
+            var currentUser = _userService.GetCurrentUser();
+
+            var detail = new ProductDetailEntity
+            {
+                Color = dto.Color,
+                Size = dto.Size,
+                Description = dto.DetailDescription,
+                ProductId = product.Id,
+                CreateBy = currentUser
+            };
+
+            _productDetailCommandRepository.Add(detail);
+            await _unitOfWork.SaveChangesAsync();
+
+            var image = new ProductImageEntity
+            {
+                ImageUrl = dto.ImageUrl,
+                ProductDetailId = detail.Id,
+                CreateBy = currentUser
+            };
+
+            await _productImageCommandRepository.AddAsync(image);
+            return detail;
+        }
+        #endregion
+
+
+        #region AddOutBoxMessagePrivateMethod
+        private async Task AddOutboxMessagesAsync(ProductTransactionServiceDto dto, ProductEntity product, ProductDetailEntity detail)
+        {
+            var userId = _userService.GetCurrentUser();
+
+            var priceMessage = new OutBoxMessagesEntity
+            {
+                Event = "AddPriceEvent",
+                Content = JsonConvert.SerializeObject(new PriceToPublishDto
+                {
+                    ProductDetailId = detail.Id,
+                    Price = dto.Price,
+                    UserId = _userService.GetCurrentUser()
+                }),
+
+            };
+
+            var inventoryMessage = new OutBoxMessagesEntity
+            {
+                Event = "AddInventoryEvent",
+                Content = JsonConvert.SerializeObject(new InventoryAddToPublishDto
+                {
+                    QuantityChange = +product.Quantity,
+                    ProductId = product.Id,
+                    UserId = _userService.GetCurrentUser()
+                })
+            };
+
+            await _outBoxCommandRepository.AddAsync(priceMessage);
+            await _outBoxCommandRepository.AddAsync(inventoryMessage);
+        }
+        #endregion
+
 
         #endregion
 

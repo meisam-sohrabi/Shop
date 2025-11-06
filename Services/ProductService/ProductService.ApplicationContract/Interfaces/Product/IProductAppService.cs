@@ -7,7 +7,7 @@ namespace ProductService.ApplicationContract.Interfaces.Product
 {
     public interface IProductAppService
     {
-        Task<BaseResponseDto<ProductTransactionServiceDto>> ProductTransaction(ProductTransactionServiceDto productTransactionDto, int categoryId, int productBrandId);
+        Task<BaseResponseDto<ProductTransactionServiceDto>> ProductTransaction(ProductTransactionServiceDto productTransactionDto);
         Task<BaseResponseDto<ProductResponseDto>> EditProduct(int id, ProductRequestDto productDto);
         Task<BaseResponseDto<ProductResponseDto>> EditArabicToPersianSP(ProductArabicToPersianDto productArabicToPersianDto);
         Task<BaseResponseDto<ProductResponseDto>> DeleteProduct(int id);

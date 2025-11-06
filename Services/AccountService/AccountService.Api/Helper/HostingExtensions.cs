@@ -1,12 +1,12 @@
 ﻿using AccountService.Domain.Entities;
 using AccountService.Infrastructure.EntityFrameWorkCore.AppDbContext;
 using AccountService.IocConfig;
+using BaseConfig;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using BaseConfig;
 namespace AccountService.Api.Helper
 {
     public static class HostingExtensions
@@ -15,8 +15,8 @@ namespace AccountService.Api.Helper
         {
             // Add services to the container.
 
-            builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+            builder.Services.AddControllers();
             builder.Services.AddOpenApi();
             builder.Services.AddIdentity<CustomUserEntity, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>();
             builder.Services.AddHttpContextAccessor();
@@ -84,7 +84,6 @@ namespace AccountService.Api.Helper
             });
 
 
-
             return builder.Build();
 
 
@@ -103,10 +102,8 @@ namespace AccountService.Api.Helper
             }
 
             app.UseHttpsRedirection();
-
             app.UseAuthentication();
             app.UseAuthorization();
-
             app.MapControllers();
             return app;
         }

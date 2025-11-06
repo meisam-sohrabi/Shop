@@ -1,12 +1,14 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using AccountService.ApplicationContract.DTO.Account;
 using AccountService.ApplicationContract.DTO.Base;
 using AccountService.ApplicationContract.DTO.Role;
 using AccountService.ApplicationContract.Interfaces.Role;
 using AccountService.InfrastructureContract.Interfaces.Command.Role;
 using AccountService.InfrastructureContract.Interfaces.Query.Account;
 using AccountService.InfrastructureContract.Interfaces.Query.Role;
+using AutoMapper;
+using FluentValidation;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 
 namespace AccountService.Application.Services.Role
@@ -17,14 +19,18 @@ namespace AccountService.Application.Services.Role
         private readonly IRoleQueryRepository _roleQueryRepository;
         private readonly IMapper _mapper;
         private readonly IAccountQueryRepository _accountQueryRepository;
+        private readonly IValidator<RoleDto> _roleValidator;
 
         public RoleAppService(IRoleCommandRepository roleCommandRepository
-            ,IRoleQueryRepository roleQueryRepository,IMapper mapper,IAccountQueryRepository accountQueryRepository)
+            ,IRoleQueryRepository roleQueryRepository,IMapper mapper
+            ,IAccountQueryRepository accountQueryRepository
+            ,IValidator<RoleDto> roleValidator)
         {
             _roleCommandRepository = roleCommandRepository;
             _roleQueryRepository = roleQueryRepository;
             _mapper = mapper;
             _accountQueryRepository = accountQueryRepository;
+            _roleValidator = roleValidator;
         }
 
         #region RevokeRole
@@ -117,6 +123,15 @@ namespace AccountService.Application.Services.Role
                 Success = false,
                 StatusCode = HttpStatusCode.BadRequest
             };
+            var validationResult = await _roleValidator.ValidateAsync(roleDto);
+            if (!validationResult.IsValid)
+            {
+                output.Message = "خطاهای اعتبارسنجی رخ داده است.";
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.BadRequest;
+                output.ValidationErrors = validationResult.ToDictionary();
+                return output;
+            }
             var roleExist = await _roleQueryRepository.RoleExist(roleDto.Name);
             if (roleExist)
             {
@@ -183,6 +198,15 @@ namespace AccountService.Application.Services.Role
                 Success = false,
                 StatusCode = HttpStatusCode.BadRequest
             };
+            var validationResult = await _roleValidator.ValidateAsync(roleDto);
+            if (!validationResult.IsValid)
+            {
+                output.Message = "خطاهای اعتبارسنجی رخ داده است.";
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.BadRequest;
+                output.ValidationErrors = validationResult.ToDictionary();
+                return output;
+            }
             var roleExist = await _roleQueryRepository.GetRoleByName(oldRole);
             if (roleExist == null)
             {

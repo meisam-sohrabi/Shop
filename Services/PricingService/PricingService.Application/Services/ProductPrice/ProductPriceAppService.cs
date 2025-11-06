@@ -20,7 +20,7 @@ namespace PricingService.Application.Services.ProductPrice
 
         public ProductPriceAppService(IProductPriceCommandRepository productPriceCommandRepository,
             IProductPriceQueryRepository productPriceQueryRepository
-            ,IUnitOfWork unitOfWork,
+            , IUnitOfWork unitOfWork,
             IMapper mapper)
         {
             _productPriceCommandRepository = productPriceCommandRepository;
@@ -48,7 +48,7 @@ namespace PricingService.Application.Services.ProductPrice
             //    return output;
             //}
             var mapped = _mapper.Map<ProductPriceEntity>(productPriceRequestDto);
-           await _productPriceCommandRepository.AddAsync(mapped);
+            await _productPriceCommandRepository.AddAsync(mapped);
             var affectedRows = await _unitOfWork.SaveChangesAsync();
             if (affectedRows > 0)
             {
@@ -119,65 +119,65 @@ namespace PricingService.Application.Services.ProductPrice
         }
         #endregion
 
-        #region GetAll
-        public async Task<BaseResponseDto<List<ProductPriceResponseDto>>> GetAllProductPrice()
+        #region Get
+        public async Task<BaseResponseDto<List<ProductPriceResponseDto>>> GetProductPrice(int id)
         {
             var output = new BaseResponseDto<List<ProductPriceResponseDto>>
             {
-                Message = "خطا در بازیابی  قیمت محصولات ",
+                Message = "خطا در بازیابی قیمت",
                 Success = false,
                 StatusCode = HttpStatusCode.BadRequest
             };
-            var prices = await _productPriceQueryRepository.GetQueryable().Select(c => new ProductPriceResponseDto
-            {
-                Price = c.Price,
-                SetDate = c.SetDate
-            }).ToListAsync();
-            if (!prices.Any())
-            {
-                output.Message = "قیمت محصولات موردنظر وجود ندارد";
-                output.Success = false;
-                output.StatusCode = HttpStatusCode.NotFound;
-                return output;
-            }
-            output.Message = "قیمت محصولات با موفقیت دریافت شد";
-            output.Success = true;
-            output.StatusCode = output.Success ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
-            output.Data = prices;
-            return output;
-        }
-        #endregion
-
-        #region Delete
-        public async Task<BaseResponseDto<ProductPriceResponseDto>> GetProductPrice(int id)
-        {
-            var output = new BaseResponseDto<ProductPriceResponseDto>
-            {
-                Message = "خطا در بازیابی قیمت محصول",
-                Success = false,
-                StatusCode = HttpStatusCode.BadRequest
-            };
-            var price = await _productPriceQueryRepository.GetQueryable().Where(c => c.Id == id)
-                .Select(c => new ProductPriceResponseDto
-                {
-                    Price = c.Price,
-                    SetDate = c.SetDate
-                }).FirstOrDefaultAsync();
+            var price = await _productPriceQueryRepository.GetQueryable()
+                        .Where(c => c.ProductDetailId == id)
+                        .Select(c => new ProductPriceResponseDto { Price = c.Price, SetDate = c.SetDate })
+                        .ToListAsync();
             if (price == null)
             {
-                output.Message = "قیمت موردنظر وجود ندارد";
+                output.Message = "قیمت محصول موردنظر وجود ندارد";
                 output.Success = false;
                 output.StatusCode = HttpStatusCode.NotFound;
                 return output;
             }
-
-            output.Message = "قیمت با موفقیت دریافت شد";
+            output.Message = "قیمت محصول موردنظر با موفقیت دریافت شد";
             output.Success = true;
             output.StatusCode = output.Success ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
             output.Data = price;
             return output;
         }
+
         #endregion
+
+        #region GetAll
+        //public async Task<BaseResponseDto<List<ProductPriceResponseDto>>> GetAllProductPrice()
+        //{
+        //    var output = new BaseResponseDto<List<ProductPriceResponseDto>>
+        //    {
+        //        Message = "خطا در بازیابی  قیمت محصولات ",
+        //        Success = false,
+        //        StatusCode = HttpStatusCode.BadRequest
+        //    };
+        //    var prices = await _productPriceQueryRepository.GetQueryable().Select(c => new ProductPriceResponseDto
+        //    {
+        //        Price = c.Price,
+        //        SetDate = c.SetDate
+        //    }).ToListAsync();
+        //    if (!prices.Any())
+        //    {
+        //        output.Message = "قیمت محصولات موردنظر وجود ندارد";
+        //        output.Success = false;
+        //        output.StatusCode = HttpStatusCode.NotFound;
+        //        return output;
+        //    }
+        //    output.Message = "قیمت محصولات با موفقیت دریافت شد";
+        //    output.Success = true;
+        //    output.StatusCode = output.Success ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
+        //    output.Data = prices;
+        //    return output;
+        //}
+        #endregion
+
+
 
     }
 }

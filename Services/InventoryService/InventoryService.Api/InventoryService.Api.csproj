@@ -27,8 +27,5 @@
     <ProjectReference Include="..\..\..\SharedKernel\BaseConfig\BaseConfig.csproj" />
     <ProjectReference Include="..\InventoryService.IocConfig\InventoryService.IocConfig.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
 
 </Project>

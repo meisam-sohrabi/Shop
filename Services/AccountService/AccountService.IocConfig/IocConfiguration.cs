@@ -9,6 +9,7 @@ using AccountService.ApplicationContract.Interfaces.Account;
 using AccountService.ApplicationContract.Interfaces.Permission;
 using AccountService.ApplicationContract.Interfaces.Role;
 using AccountService.ApplicationContract.Interfaces.UserPermission;
+using AccountService.ApplicationContract.Validations;
 using AccountService.Infrastructure.EntityFrameWorkCore.AppDbContext;
 using AccountService.Infrastructure.EntityFrameWorkCore.Repository.Command.Account;
 using AccountService.Infrastructure.EntityFrameWorkCore.Repository.Command.Permission;
@@ -29,6 +30,7 @@ using AccountService.InfrastructureContract.Interfaces.Query.Account;
 using AccountService.InfrastructureContract.Interfaces.Query.Permission;
 using AccountService.InfrastructureContract.Interfaces.Query.Role;
 using AccountService.InfrastructureContract.Interfaces.Query.UserPermission;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AccountService.IocConfig
@@ -55,6 +57,7 @@ namespace AccountService.IocConfig
             services.AddScoped<IPermissionAppService, PermissionAppService>();
             services.AddScoped<IUserPermissionAppService, UserPermissionAppService>();
             services.AddScoped<IUnitOfWork,UnitOfWork>();
+            services.AddValidatorsFromAssemblyContaining<CreateUserDtoValidator>();
             return services;
         }
     }
