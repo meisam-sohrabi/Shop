@@ -82,7 +82,7 @@ namespace ProductService.Application.Services.OutBoxProcessors
                         }
 
                         await uow.SaveChangesAsync();
-                        await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                        await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
 
                     }
                 }

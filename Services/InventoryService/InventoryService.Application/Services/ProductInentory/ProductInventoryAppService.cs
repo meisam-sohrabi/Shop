@@ -26,7 +26,7 @@ namespace InventoryService.Application.Services.ProductInentory
                 StatusCode = HttpStatusCode.BadRequest
             };
             var inventory = await _productInventoryQueryRepository.GetQueryable()
-                        .Where(c => c.ProductId == id)
+                        .Where(c => c.ProductDetailId == id)
                         .Select(c => new ProductInventoryResponseDto { ChangeDate = c.ChangeDate, QuantityChange = c.QuantityChange })
                         .ToListAsync();
             if (inventory == null)

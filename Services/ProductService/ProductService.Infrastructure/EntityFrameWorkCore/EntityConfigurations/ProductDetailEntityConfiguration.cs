@@ -11,6 +11,7 @@ namespace ProductService.Infrastructure.EntityFrameWorkCore.EntityConfigurations
             builder.ToTable("Details","Product");
             builder.HasKey(e => e.Id);
             builder.Property(p => p.Size).IsRequired().HasMaxLength(30);
+            builder.Property(c => c.Quantity).IsRequired();
             builder.Property(p => p.Description).HasMaxLength(350);
             builder.HasOne(p => p.Product)
                 .WithMany(p => p.ProductDetails)

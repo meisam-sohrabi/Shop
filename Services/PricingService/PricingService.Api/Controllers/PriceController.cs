@@ -34,7 +34,7 @@ namespace PricingService.Api.Controllers
 
         [HttpGet("GetById/{id}")]
         [Authorize(Roles = "admin")]
-        public async Task<BaseResponseDto<List<ProductPriceResponseDto>>> GetById([FromRoute] int id)
+        public async Task<BaseResponseDto<ProductPriceResponseDto>> GetById([FromRoute] int id)
         {
             return await _productPriceAppService.GetProductPrice(id);
         }

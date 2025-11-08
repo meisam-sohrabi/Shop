@@ -120,9 +120,9 @@ namespace PricingService.Application.Services.ProductPrice
         #endregion
 
         #region Get
-        public async Task<BaseResponseDto<List<ProductPriceResponseDto>>> GetProductPrice(int id)
+        public async Task<BaseResponseDto<ProductPriceResponseDto>> GetProductPrice(int id)
         {
-            var output = new BaseResponseDto<List<ProductPriceResponseDto>>
+            var output = new BaseResponseDto<ProductPriceResponseDto>
             {
                 Message = "خطا در بازیابی قیمت",
                 Success = false,
@@ -130,8 +130,9 @@ namespace PricingService.Application.Services.ProductPrice
             };
             var price = await _productPriceQueryRepository.GetQueryable()
                         .Where(c => c.ProductDetailId == id)
-                        .Select(c => new ProductPriceResponseDto { Price = c.Price, SetDate = c.SetDate })
-                        .ToListAsync();
+                        .OrderByDescending(c => c.SetDate)
+                        .Select(c => new ProductPriceResponseDto { Id = c.Id,Price = c.Price, SetDate = c.SetDate })
+                        .FirstOrDefaultAsync();
             if (price == null)
             {
                 output.Message = "قیمت محصول موردنظر وجود ندارد";

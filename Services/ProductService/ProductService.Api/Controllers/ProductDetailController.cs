@@ -39,6 +39,7 @@ namespace ProductService.Api.Controllers
         }
 
         [HttpGet("GetById/{id}")]
+        [Authorize]
         public async Task<BaseResponseDto<ProductDetailResponseDto>> GetById([FromRoute] int id)
         {
             return await _productDetailAppService.GetProductDetail(id);

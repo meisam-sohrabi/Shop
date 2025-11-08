@@ -1,6 +1,6 @@
-﻿namespace ProductService.ApplicationContract.DTO.Price
+﻿namespace PricingService.ApplicationContract.DTO.Price
 {
-    public class PriceToPublishDto
+    public class PriceEventDto
     {
         public string UserId { get; set; }
         public decimal Price { get; set; }

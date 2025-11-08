@@ -1,38 +1,19 @@
 ﻿using ProductService.Infrastructure.EntityFrameWorkCore.AppDbContext;
 using ProductService.Domain.Entities;
 using ProductService.InfrastructureContract.Interfaces.Command.ProductDetail;
+using ProductService.Infrastructure.EntityFrameWorkCore.Repository.Command.Generic;
 
 namespace ProductService.Infrastructure.EntityFrameWorkCore.Repository.Command.ProductDetail
 {
-    public class ProductDetailCommandRepository : IProductDetailCommandRepository
+    public class ProductDetailCommandRepository : GenericCommandRepository<ProductDetailEntity>,IProductDetailCommandRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public ProductDetailCommandRepository(ApplicationDbContext context)
+        public ProductDetailCommandRepository(ApplicationDbContext context) : base(context)
         {
             _context = context;
         }
-        public void Add(ProductDetailEntity productDetail)
-        {
-            _context.ProductDetails.Add(productDetail);
-        }
 
-        public void Delete(ProductDetailEntity productDetail)
-        {
-            _context.ProductDetails.Remove(productDetail);
-        }
-
-        public void Edit(ProductDetailEntity productDetail)
-        {
-            var entry = _context.Entry(productDetail);
-            var key = _context.Model.FindEntityType(typeof(ProductEntity))?.FindPrimaryKey();
-            if (key != null)
-            {
-                foreach (var property in key.Properties)
-                {
-                    entry.Property(property.Name).IsModified = false;
-                }
-            }
-        }
+       
     }
 }

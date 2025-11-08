@@ -1,4 +1,5 @@
-﻿using InventoryService.ApplicationContract.DTO.ProductInventory;
+﻿using InventoryService.ApplicationContract.DTO.Inventory;
+using InventoryService.ApplicationContract.DTO.ProductInventory;
 using InventoryService.Domain.Entities;
 using InventoryService.InfrastructureContract.Interfaces;
 using InventoryService.InfrastructureContract.Interfaces.Command.ProductInventory;
@@ -66,9 +67,9 @@ namespace InventoryService.Application.Services.RabbitInventory
                         {
                             var body = ea.Body.ToArray();
                             var message = Encoding.UTF8.GetString(body);
-                            var data = JsonSerializer.Deserialize<ProductInventoryRequestDto>(message);
+                            var data = JsonSerializer.Deserialize<InventoryEventDto>(message);
 
-                            if (data == null || data.ProductId == 0)
+                            if (data == null || data.ProductDetailId == 0)
                             {
                                 Console.WriteLine("Invalid message received.");
                                 await channel.BasicNackAsync(ea.DeliveryTag, false, requeue: false);
@@ -77,7 +78,7 @@ namespace InventoryService.Application.Services.RabbitInventory
 
                             var entity = new ProductInventoryEntity
                             {
-                                ProductId = data.ProductId,
+                                ProductDetailId = data.ProductDetailId,
                                 QuantityChange = data.QuantityChange,
                                 CreateBy = data.UserId
                             };
@@ -99,7 +100,7 @@ namespace InventoryService.Application.Services.RabbitInventory
                     // مدیریت ریسورس
                     while (channel.IsOpen && !channel.IsClosed && !stoppingToken.IsCancellationRequested)
                     {
-                        await Task.Delay(1000, stoppingToken);
+                        await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
                     }
 
                     Console.WriteLine("Channel or connection closed. Reconnecting...");
@@ -110,7 +111,7 @@ namespace InventoryService.Application.Services.RabbitInventory
                 }
 
                 // وقتی که ارتباط قطع شد 5 ثانیه صبر کن و مجدد تلاش کن
-                await Task.Delay(5000, stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
         }
 

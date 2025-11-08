@@ -5,6 +5,6 @@
         public int Id { get; set; }
         public int QuantityChange { get; set; }
         public DateTime ChangeDate { get; set; } = DateTime.Now;
-        public int ProductId { get; set; }
+        public int ProductDetailId { get; set; }
     }
 }

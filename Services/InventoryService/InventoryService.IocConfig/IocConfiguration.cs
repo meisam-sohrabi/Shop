@@ -1,4 +1,5 @@
 ﻿//using InventoryService.Application.Services.Mapping;
+using InventoryService.Application.Services.InventoryConsumer;
 using InventoryService.Application.Services.ProductInentory;
 using InventoryService.Application.Services.RabbitInventory;
 using InventoryService.ApplicationContract.Interfaces.ProductInentory;
@@ -22,6 +23,7 @@ namespace InventoryService.IocConfig
             services.AddScoped<IProductInventoryQueryRepository, ProductInventoryQueryRepository>();
             services.AddScoped<IProductInentoryAppService,ProductInventoryAppService>();
             services.AddHostedService<InventoryConsumerAppService>();
+            services.AddHostedService<OrderConsumerAppService>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             return services;
         }

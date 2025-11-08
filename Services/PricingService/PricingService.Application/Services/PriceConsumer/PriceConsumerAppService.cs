@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using PricingService.ApplicationContract.DTO.Price;
 using PricingService.ApplicationContract.DTO.ProductPrice;
 using PricingService.Domain.Entities;
 using PricingService.InfrastructureContract.Interfaces;
@@ -69,7 +70,7 @@ namespace PricingService.Application.Services.RabbitPrice
                             {
                                 var body = ea.Body.ToArray();
                                 var message = Encoding.UTF8.GetString(body);
-                                var data = JsonSerializer.Deserialize<ProductPriceRequestDto>(message);
+                                var data = JsonSerializer.Deserialize<PriceEventDto>(message);
 
                                 if (data == null || data.ProductDetailId == 0)
                                 {
@@ -100,7 +101,7 @@ namespace PricingService.Application.Services.RabbitPrice
                         await channel.BasicConsumeAsync("Price-Publish-Queue", false, consumer);
 
 
-                        await Task.Delay(1000, stoppingToken);
+                        await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
                     }
 
                     Console.WriteLine(" Channel or connection closed. Attempting to reconnect...");
@@ -111,7 +112,7 @@ namespace PricingService.Application.Services.RabbitPrice
                 }
 
                 // 💤 صبر برای reconnect
-                await Task.Delay(5000, stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
         }
     }

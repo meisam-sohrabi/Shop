@@ -30,6 +30,8 @@ namespace ProductService.Api.Controllers
             var url = await FileStorage.SaveFileAsync(productTransactionDto.File);
             var transactionService = new ProductTransactionServiceDto
             {
+                categoryId = productTransactionDto.categoryId,
+                productBrandId = productTransactionDto.productBrandId,
                 ProductName = productTransactionDto.ProductName,
                 ProductDescription = productTransactionDto.ProductDescription,
                 ProductQuantity = productTransactionDto.ProductQuantity,
@@ -42,12 +44,12 @@ namespace ProductService.Api.Controllers
             return await _productAppService.ProductTransaction(transactionService);
         }
 
-        [HttpPost("Edit/{id}")]
-        [Authorize(Roles = "admin")]
-        public async Task<BaseResponseDto<ProductResponseDto>> Edit([FromRoute] int id, [FromBody] ProductRequestDto productDto)
-        {
-            return await _productAppService.EditProduct(id, productDto);
-        }
+        //[HttpPost("Edit/{id}")]
+        //[Authorize(Roles = "admin")]
+        //public async Task<BaseResponseDto<ProductResponseDto>> Edit([FromRoute] int id, [FromBody] ProductRequestDto productDto)
+        //{
+        //    return await _productAppService.EditProduct(id, productDto);
+        //}
 
         [HttpGet("GetAll")]
         public async Task<BaseResponseDto<List<ProductResponseDto>>> GetAll()

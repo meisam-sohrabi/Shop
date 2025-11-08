@@ -49,7 +49,7 @@ namespace ProductService.Application.Services.ProductDetail
                 return output;
             }
             var mapped = _mapper.Map<ProductDetailEntity>(ProductDetailDto);
-            _productDetailCommandRepository.Add(mapped);
+           await _productDetailCommandRepository.AddAsync(mapped);
             var affectedRows = await _unitOfWork.SaveChangesAsync();
             if (affectedRows > 0)
             {
@@ -135,9 +135,11 @@ namespace ProductService.Application.Services.ProductDetail
                 .Where(c => c.Id == id)
                 .Select(c => new ProductDetailResponseDto
                 {
+                    Id = c.Id,
                     Size = c.Size,
                     Color = c.Color,
-                    Description = c.Description
+                    Description = c.Description,
+                    Quantity = c.Quantity
                 })
                 .FirstOrDefaultAsync();
             if (detail == null)

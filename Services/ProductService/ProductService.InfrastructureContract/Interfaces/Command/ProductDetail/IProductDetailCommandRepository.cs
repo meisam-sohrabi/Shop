@@ -1,11 +1,10 @@
 ﻿using ProductService.Domain.Entities;
+using ProductService.InfrastructureContract.Interfaces.Command.Generic;
 
 namespace ProductService.InfrastructureContract.Interfaces.Command.ProductDetail
 {
-    public interface IProductDetailCommandRepository
+    public interface IProductDetailCommandRepository : IGenericCommandRepository<ProductDetailEntity>
     {
-        void Add(ProductDetailEntity productDetail);
-        void Edit(ProductDetailEntity productDetail);
-        void Delete(ProductDetailEntity productDetail);
+
     }
 }
