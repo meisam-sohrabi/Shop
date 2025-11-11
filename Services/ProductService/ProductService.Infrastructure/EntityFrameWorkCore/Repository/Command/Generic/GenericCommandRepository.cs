@@ -18,6 +18,11 @@ namespace ProductService.Infrastructure.EntityFrameWorkCore.Repository.Command.G
             await _dbSet.AddAsync(entity);
         }
 
+        public async Task AddRangeAsync(List<T> entity)
+        {
+           await _dbSet.AddRangeAsync(entity);
+        }
+
         public virtual void Delete(T entity)
         {
             _dbSet.Remove(entity);

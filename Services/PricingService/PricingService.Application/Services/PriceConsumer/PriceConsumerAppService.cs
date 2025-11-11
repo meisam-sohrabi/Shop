@@ -34,13 +34,6 @@ namespace PricingService.Application.Services.RabbitPrice
                     using var connection = await factory.CreateConnectionAsync(stoppingToken);
                     using var channel = await connection.CreateChannelAsync();
 
-                    await channel.ExchangeDeclareAsync(
-                        exchange: "Price-Publish-Exchange",
-                        type: ExchangeType.Direct,
-                        durable: true,
-                        autoDelete: false,
-                        arguments: null);
-
                     await channel.QueueDeclareAsync(
                         queue: "Price-Publish-Queue",
                         durable: true,
@@ -50,8 +43,8 @@ namespace PricingService.Application.Services.RabbitPrice
 
                     await channel.QueueBindAsync(
                         queue: "Price-Publish-Queue",
-                        exchange: "Price-Publish-Exchange",
-                        routingKey: "Price-Publish-RoutingKey");
+                        exchange: "Product-Exchange",
+                        routingKey: "AddPriceEvent");
 
                     Console.WriteLine(" Connected to RabbitMQ and ready to consume price messages.");
 

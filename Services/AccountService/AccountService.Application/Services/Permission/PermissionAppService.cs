@@ -1,16 +1,17 @@
-﻿using AccountService.ApplicationContract.DTO.Account;
-using AccountService.ApplicationContract.DTO.Base;
+﻿using AccountService.ApplicationContract.DTO.Base;
 using AccountService.ApplicationContract.DTO.Permission;
 using AccountService.ApplicationContract.DTO.UserPermission;
 using AccountService.ApplicationContract.Interfaces.Permission;
 using AccountService.Domain.Entities;
 using AccountService.InfrastructureContract.Interfaces;
+using AccountService.InfrastructureContract.Interfaces.Command.OutBox;
 using AccountService.InfrastructureContract.Interfaces.Command.Permission;
 using AccountService.InfrastructureContract.Interfaces.Query.Account;
 using AccountService.InfrastructureContract.Interfaces.Query.Permission;
 using AutoMapper;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System.Net;
 
 namespace AccountService.Application.Services.Permission
@@ -23,11 +24,13 @@ namespace AccountService.Application.Services.Permission
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAccountQueryRepository _accountQueryRepository;
         private readonly IValidator<PermissionDto> _permissionValidator;
+        private readonly IOutBoxCommandRepository _outBoxCommandRepository;
 
         public PermissionAppService(IPermissionCommandRepository permissionCommandRepository
             , IPermissionQueryRepository permissionQueryRepository, IMapper mapper, IUnitOfWork unitOfWork
             , IAccountQueryRepository accountQueryRepository
-            ,IValidator<PermissionDto> permissionValidator)
+            , IValidator<PermissionDto> permissionValidator
+            , IOutBoxCommandRepository outBoxCommandRepository)
         {
             _permissionCommandRepository = permissionCommandRepository;
             _permissionQueryRepository = permissionQueryRepository;
@@ -35,6 +38,7 @@ namespace AccountService.Application.Services.Permission
             _unitOfWork = unitOfWork;
             _accountQueryRepository = accountQueryRepository;
             _permissionValidator = permissionValidator;
+            _outBoxCommandRepository = outBoxCommandRepository;
         }
 
 
@@ -65,12 +69,42 @@ namespace AccountService.Application.Services.Permission
                 return output;
             }
             var mapped = _mapper.Map<PermissionEntity>(permissionDto);
-            _permissionCommandRepository.Add(mapped);
-            var affectedRows = await _unitOfWork.SaveChangesAsync();
-            if (affectedRows > 0)
+
+            try
             {
+                _unitOfWork.BeginTransaction();
+
+                _permissionCommandRepository.Add(mapped);
+                await _unitOfWork.SaveChangesAsync();
+
+                var outbox = new OutBoxMessageEntity
+                {
+                    Event = "PermissionCreated",
+                    Content = JsonConvert.SerializeObject(new PermissionEventDto
+                    {
+                        Id = mapped.Id,
+                        Action = mapped.Action,
+                        Resource = mapped.Resource,
+                        Description = mapped.Description,
+                    })
+
+                };
+
+                await _outBoxCommandRepository.AddAsync(outbox);
+                await _unitOfWork.SaveChangesAsync();
+
+                await _unitOfWork.CommitTransactionAsync();
                 output.Message = $"پرمیژن  با موفقیت ایجاد شد";
                 output.Success = true;
+            }
+            catch (Exception ex)
+            {
+
+                await _unitOfWork.RollBackTransactionAsync();
+
+                output.Message = "خطای غیرمنتظره رخ داد" + ex.Message;
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.InternalServerError;
             }
             output.StatusCode = output.Success ? HttpStatusCode.Created : HttpStatusCode.BadRequest;
             return output;
@@ -185,9 +219,9 @@ namespace AccountService.Application.Services.Permission
         #endregion
 
         #region GetAll
-        public async Task<BaseResponseDto<List<PermissionDto>>> GetAllPermissions()
+        public async Task<BaseResponseDto<List<ShowAllPermissions>>> GetAllPermissions()
         {
-            var output = new BaseResponseDto<List<PermissionDto>>
+            var output = new BaseResponseDto<List<ShowAllPermissions>>
             {
                 Message = "خطا در دریافت پرمیژن",
                 Success = false,
@@ -201,7 +235,7 @@ namespace AccountService.Application.Services.Permission
                 output.StatusCode = HttpStatusCode.Conflict;
                 return output;
             }
-            var mapped = _mapper.Map<List<PermissionDto>>(permissionExist);
+            var mapped = _mapper.Map<List<ShowAllPermissions>>(permissionExist);
             output.Message = "پرمیژن ها با موفقیت به دریافت  شدند";
             output.Success = true;
             output.Data = mapped;

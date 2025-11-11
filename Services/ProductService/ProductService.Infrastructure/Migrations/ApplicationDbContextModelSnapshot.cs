@@ -58,6 +58,40 @@ namespace ProductService.Infrastructure.Migrations
                     b.ToTable("Categories", "Product");
                 });
 
+            modelBuilder.Entity("ProductService.Domain.Entities.LocalPermissionEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Resource")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Permissions", "User");
+                });
+
+            modelBuilder.Entity("ProductService.Domain.Entities.LocalUserPermissionEntity", b =>
+                {
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("PermissionId", "UserId");
+
+                    b.ToTable("UserPermissions", "User");
+                });
+
             modelBuilder.Entity("ProductService.Domain.Entities.OutBoxMessagesEntity", b =>
                 {
                     b.Property<Guid>("Id")

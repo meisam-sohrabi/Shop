@@ -1,19 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AccountService.InfrastructureContract.Interfaces;
+using AccountService.InfrastructureContract.Interfaces.Command.OutBox;
+using AccountService.InfrastructureContract.Interfaces.Query.OutBox;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using ProductService.InfrastructureContract.Interfaces;
-using ProductService.InfrastructureContract.Interfaces.Command.OutBox;
-using ProductService.InfrastructureContract.Interfaces.Query.OutBox;
 using RabbitMQ.Client;
 using System.Text;
 
-namespace ProductService.Application.Services.OutBoxProcessors
+namespace AccountService.Application.Services.OutBoxProcessor
 {
-    public class OutBoxPriceProcessor : BackgroundService
+    public class OutBoxProcessor : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
 
-        public OutBoxPriceProcessor(IServiceScopeFactory scopeFactory)
+        public OutBoxProcessor(IServiceScopeFactory scopeFactory)
         {
             _scopeFactory = scopeFactory;
         }
@@ -26,51 +26,31 @@ namespace ProductService.Application.Services.OutBoxProcessors
 
                 try
                 {
-                    using var connectoin = await factory.CreateConnectionAsync(stoppingToken);
-                    using var channel = await connectoin.CreateChannelAsync();
+                    using var connection = await factory.CreateConnectionAsync(stoppingToken);
+                    using var channel = await connection.CreateChannelAsync();
                     await channel.ExchangeDeclareAsync(
-                        exchange: "Price-Publish-Exchange",
+                        exchange: "Product-Permission-Exchange",
                         type: ExchangeType.Direct,
-                        durable: true, autoDelete: false,
-                        arguments: null);
-
-                    await channel.QueueDeclareAsync(
-                        queue: "Price-Publish-Queue",
                         durable: true,
-                        exclusive: false,
                         autoDelete: false,
                         arguments: null);
 
-                    await channel.QueueBindAsync(
-                        queue: "Price-Publish-Queue",
-                        exchange: "Price-Publish-Exchange",
-                        routingKey: "Price-Publish-RoutingKey",
-                        arguments: null);
-
-                    //  حلقه داخلی: تا زمانی که connection سالمه
-                    while (connectoin.IsOpen && !channel.IsClosed && !stoppingToken.IsCancellationRequested)
+                    while (connection.IsOpen && !channel.IsClosed && !stoppingToken.IsCancellationRequested)
                     {
+
                         using var scope = _scopeFactory.CreateScope();
                         var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                         var priceCmd = scope.ServiceProvider.GetRequiredService<IOutBoxCommandRepository>();
                         var priceQry = scope.ServiceProvider.GetRequiredService<IOutBoxQueryRepository>();
 
                         var messages = await priceQry.GetQueryable()
-                            .Where(c => !c.Sent && c.Event == "AddPriceEvent")
-                            .ToListAsync(stoppingToken);
-
+                                .Where(c => !c.Sent)
+                                .ToListAsync(stoppingToken);
                         foreach (var msg in messages)
                         {
                             try
                             {
-                                await channel.BasicPublishAsync(
-                                    exchange: "Price-Publish-Exchange",
-                                    routingKey: "Price-Publish-RoutingKey",
-                                    mandatory: true,
-                                    basicProperties: properties,
-                                    body: Encoding.UTF8.GetBytes(msg.Content)
-                                );
-
+                              await  PublishAsync(msg.Event, msg.Content, channel, properties);
                                 msg.Sent = true;
                                 msg.SentAt = DateTime.Now;
                                 priceCmd.Edit(msg);
@@ -83,7 +63,6 @@ namespace ProductService.Application.Services.OutBoxProcessors
 
                         await uow.SaveChangesAsync();
                         await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
-
                     }
                 }
                 catch (Exception ex)
@@ -94,6 +73,16 @@ namespace ProductService.Application.Services.OutBoxProcessors
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
 
             }
+        }
+
+        private async Task PublishAsync(string eventType, string content, IChannel channel, BasicProperties property)
+        {
+            await channel.BasicPublishAsync(
+                        exchange: "Account-Exchange",
+                        routingKey: eventType,
+                        mandatory: true,
+                        basicProperties: property,
+                        body: Encoding.UTF8.GetBytes(content));
         }
     }
 }

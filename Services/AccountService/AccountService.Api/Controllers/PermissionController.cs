@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using AccountService.Application.Services.Attributes;
 using AccountService.ApplicationContract.DTO.Base;
 using AccountService.ApplicationContract.DTO.Permission;
 using AccountService.ApplicationContract.DTO.UserPermission;
 using AccountService.ApplicationContract.Interfaces.Permission;
 using AccountService.ApplicationContract.Interfaces.UserPermission;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace AccountService.Api.Controllers
 {
@@ -37,17 +38,24 @@ namespace AccountService.Api.Controllers
         }
 
         [HttpGet("GetAll")]
-        [Authorize]
-        public async Task<BaseResponseDto<List<PermissionDto>>> GetAll()
+        [ProductServiceAccess]
+        public async Task<BaseResponseDto<List<ShowAllPermissions>>> GetAll()
         {
             return await _permissionAppService.GetAllPermissions();
         }
 
         [HttpGet("GetAllUserPermissions")]
         [Authorize]
-        public async Task<BaseResponseDto<List<ShowUserPermissionDto>>> GetAllUserPermissions([FromQuery] string userId)
+        public async Task<BaseResponseDto<List<ShowUserPermissionDto>>> GetAllUserPermissionsById([FromQuery] string userId)
         {
-            return await _userPermissionAppService.GetAllUserPermissions(userId);
+            return await _userPermissionAppService.GetAllUserPermissionsById(userId);
+        }
+
+        [HttpGet("GetAllRawUserPermissions")]
+        [ProductServiceAccess]
+        public async Task<BaseResponseDto<List<UserPermissionDto>>> GetAllUserPermissions()
+        {
+            return await _userPermissionAppService.GetAllUserPermissions();
         }
 
         [HttpGet("GetAllNotAssignUserPermissions")]

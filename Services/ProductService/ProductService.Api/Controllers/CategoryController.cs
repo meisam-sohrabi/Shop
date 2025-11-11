@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProductService.Application.Services.Attributes;
 using ProductService.ApplicationContract.DTO.Base;
 using ProductService.ApplicationContract.DTO.Category;
 using ProductService.ApplicationContract.Interfaces.Category;
@@ -18,6 +19,7 @@ namespace ProductService.Api.Controllers
 
         [HttpPost("Create")]
         [Authorize(Roles = "admin")]
+        [GeneralPermission]
         public async Task<BaseResponseDto<CategoryDto>> Create([FromBody] CategoryDto categoryDto)
         {
             return await _categoryAppService.CreateCategory(categoryDto);

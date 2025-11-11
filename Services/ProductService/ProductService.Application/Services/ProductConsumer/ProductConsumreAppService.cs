@@ -34,23 +34,23 @@ namespace ProductService.Application.Services.ProductConsumer
                     using var channel = await connection.CreateChannelAsync();
 
                     await channel.ExchangeDeclareAsync(
-                        exchange: "Product-Publish-Exchange",
+                        exchange: "Product-Permission-Exchange",
                         type: ExchangeType.Direct,
                         durable: true,
                         autoDelete: false,
                         arguments: null);
 
                     await channel.QueueDeclareAsync(
-                        queue: "Product-Publish-Queue",
+                        queue: "Product-Permission-Queue",
                         durable: true,
                         exclusive: false,
                         autoDelete: false,
                         arguments: null);
 
                     await channel.QueueBindAsync(
-                        queue: "Product-Publish-Queue",
-                        exchange: "Product-Publish-Exchange",
-                        routingKey: "Product-Publish-RoutingKey");
+                        queue: "Product-Permission-Queue",
+                        exchange: "Product-Permission-Exchange",
+                        routingKey: "Product-Permission-RoutingKey");
 
                     Console.WriteLine(" Connected to RabbitMQ and ready to consume.");
 
@@ -95,7 +95,7 @@ namespace ProductService.Application.Services.ProductConsumer
                         }
                     };
 
-                    await channel.BasicConsumeAsync("Product-Publish-Queue", false, consumer);
+                    await channel.BasicConsumeAsync("Product-Permission-Queue", false, consumer);
 
                     // دلیل وجود این حلقه تکراری برای حفظ ارتباط هستش و جلوگیری از ساخت کانسیومر جدید
                     // مدیریت ریسورس

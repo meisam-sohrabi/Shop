@@ -113,8 +113,8 @@ namespace AccountService.Application.Services.UserPermission
         }
         #endregion
 
-        #region GetAllUserPermissions
-        public async Task<BaseResponseDto<List<ShowUserPermissionDto>>> GetAllUserPermissions(string userId)
+        #region GetAllUserPermissionsById
+        public async Task<BaseResponseDto<List<ShowUserPermissionDto>>> GetAllUserPermissionsById(string userId)
         {
             var output = new BaseResponseDto<List<ShowUserPermissionDto>>
             {
@@ -153,6 +153,39 @@ namespace AccountService.Application.Services.UserPermission
 
 
         #endregion
+
+        #region GetAllUserPermission
+        public async Task<BaseResponseDto<List<UserPermissionDto>>> GetAllUserPermissions()
+        {
+            var output = new BaseResponseDto<List<UserPermissionDto>>
+            {
+                Message = "خطا در دریافت پرمیژن های کاربر",
+                Success = false,
+                StatusCode = HttpStatusCode.BadRequest
+            };
+
+            var userPermission = await _userPermissionQueryRepository.GetQueryable()
+                .Select(p => new UserPermissionDto
+                {
+                    UserId = p.UserId,
+                    PermissionId = p.PermissionId,
+                })
+                .ToListAsync();
+            if (!userPermission.Any())
+            {
+                output.Message = "پرمیژنی برای کاربر ثبت نشده است";
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.NotFound;
+                return output;
+            }
+            output.Message = "پرمیژن های کاربر با موفقیت دریافت شد";
+            output.Success = true;
+            output.Data = userPermission;
+            output.StatusCode = output.Success ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
+            return output;
+        }
+        #endregion
+
 
     }
 }

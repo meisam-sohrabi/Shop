@@ -1,5 +1,4 @@
 ﻿using InventoryService.ApplicationContract.DTO.Inventory;
-using InventoryService.ApplicationContract.DTO.ProductInventory;
 using InventoryService.Domain.Entities;
 using InventoryService.InfrastructureContract.Interfaces;
 using InventoryService.InfrastructureContract.Interfaces.Command.ProductInventory;
@@ -35,13 +34,6 @@ namespace InventoryService.Application.Services.RabbitInventory
                     using var connection = await factory.CreateConnectionAsync(stoppingToken);
                     using var channel = await connection.CreateChannelAsync();
 
-                    await channel.ExchangeDeclareAsync(
-                        exchange: "Inventory-Exchange",
-                        type: ExchangeType.Direct,
-                        durable: true,
-                        autoDelete: false,
-                        arguments: null);
-
                     await channel.QueueDeclareAsync(
                         queue: "Inventory-Queue",
                         durable: true,
@@ -51,8 +43,8 @@ namespace InventoryService.Application.Services.RabbitInventory
 
                     await channel.QueueBindAsync(
                         queue: "Inventory-Queue",
-                        exchange: "Inventory-Exchange",
-                        routingKey: "Inventory-RoutingKey");
+                        exchange: "Product-Exchange",
+                        routingKey: "AddInventoryEvent");
 
                     Console.WriteLine(" Connected to RabbitMQ and ready to consume.");
 

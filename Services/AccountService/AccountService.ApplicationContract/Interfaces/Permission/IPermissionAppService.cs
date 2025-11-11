@@ -9,7 +9,7 @@ namespace AccountService.ApplicationContract.Interfaces.Permission
         Task<BaseResponseDto<PermissionDto>> CreatePermission(PermissionDto permissionDto);
         Task<BaseResponseDto<PermissionDto>> EditPermission(int id, PermissionDto permissionDto);
         Task<BaseResponseDto<PermissionDto>> DeletePermission(int id);
-        Task<BaseResponseDto<List<PermissionDto>>> GetAllPermissions();
+        Task<BaseResponseDto<List<ShowAllPermissions>>> GetAllPermissions();
         Task<BaseResponseDto<List<ShowUserPermissionDto>>> GetAllUserNotAssignPermissions(string userId);
 
     }

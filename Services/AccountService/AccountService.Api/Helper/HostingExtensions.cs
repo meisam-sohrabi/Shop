@@ -1,4 +1,5 @@
-﻿using AccountService.Domain.Entities;
+﻿using AccountService.Application.Services.OutBoxProcessor;
+using AccountService.Domain.Entities;
 using AccountService.Infrastructure.EntityFrameWorkCore.AppDbContext;
 using AccountService.IocConfig;
 using BaseConfig;
@@ -83,6 +84,7 @@ namespace AccountService.Api.Helper
                 });
             });
 
+            builder.Services.AddHostedService<OutBoxProcessor>();
 
             return builder.Build();
 

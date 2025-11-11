@@ -8,6 +8,7 @@ namespace AccountService.ApplicationContract.Interfaces.UserPermission
     {
         Task<BaseResponseDto<UserPermissionDto>> AssignPermission(UserPermissionDto userPermissionDto);
         Task<BaseResponseDto<UserPermissionDto>> RevokePermission(UserPermissionDto userPermissionDto);
-        Task<BaseResponseDto<List<ShowUserPermissionDto>>> GetAllUserPermissions(string userId);
+        Task<BaseResponseDto<List<ShowUserPermissionDto>>> GetAllUserPermissionsById(string userId);
+        Task<BaseResponseDto<List<UserPermissionDto>>> GetAllUserPermissions();
     }
 }

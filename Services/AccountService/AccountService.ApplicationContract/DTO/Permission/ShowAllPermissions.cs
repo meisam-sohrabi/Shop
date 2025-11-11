@@ -1,0 +1,10 @@
+﻿namespace AccountService.ApplicationContract.DTO.Permission
+{
+    public class ShowAllPermissions
+    {
+        public int Id { get; set; }
+        public string Resource { get; set; }
+        public string Action { get; set; }
+        public string? Description { get; set; }
+    }
+}

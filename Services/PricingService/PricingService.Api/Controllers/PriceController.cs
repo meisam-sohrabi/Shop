@@ -25,11 +25,11 @@ namespace PricingService.Api.Controllers
            return await _productPriceAppService.CreateProductPrice(priceRequestDto);
         }
 
-        [HttpPost("EditPrice/{id}")]
+        [HttpPost("EditPrice")]
         [Authorize(Roles = "admin")]
-        public async Task<BaseResponseDto<ProductPriceResponseDto>> Edit([FromBody] ProductPriceRequestDto priceRequestDto, [FromRoute] int id)
+        public async Task<BaseResponseDto<ProductPriceResponseDto>> Edit([FromBody] ProductPriceRequestDto priceRequestDto)
         {
-            return await _productPriceAppService.EditProductPrice(id,priceRequestDto);
+            return await _productPriceAppService.EditProductPrice(priceRequestDto);
         }
 
         [HttpGet("GetById/{id}")]

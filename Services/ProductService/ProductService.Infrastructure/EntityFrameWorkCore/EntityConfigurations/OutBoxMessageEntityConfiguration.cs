@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ProductService.Domain.Entities;
 
-namespace ProductService.Infrastructure.EntityFrameWorkCore.EntityConfigurations
+namespace AccountService.Infrastructure.EntityFrameWorkCore.EntityConfigurations
 {
     internal class OutBoxMessageEntityConfiguration : IEntityTypeConfiguration<OutBoxMessagesEntity>
     {

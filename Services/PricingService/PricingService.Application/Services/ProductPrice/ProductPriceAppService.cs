@@ -90,7 +90,7 @@ namespace PricingService.Application.Services.ProductPrice
         #endregion
 
         #region Edit
-        public async Task<BaseResponseDto<ProductPriceResponseDto>> EditProductPrice(int id, ProductPriceRequestDto productPriceRequestDto)
+        public async Task<BaseResponseDto<ProductPriceResponseDto>> EditProductPrice(ProductPriceRequestDto productPriceRequestDto)
         {
             var output = new BaseResponseDto<ProductPriceResponseDto>
             {
@@ -98,7 +98,7 @@ namespace PricingService.Application.Services.ProductPrice
                 Success = false,
                 StatusCode = HttpStatusCode.BadRequest
             };
-            var priceExist = await _productPriceQueryRepository.GetQueryable().FirstOrDefaultAsync(c => c.Id == id);
+            var priceExist = await _productPriceQueryRepository.GetQueryable().Where(c => c.ProductDetailId == productPriceRequestDto.ProductDetailId).OrderByDescending(c=> c.SetDate).FirstOrDefaultAsync();
             if (priceExist == null)
             {
                 output.Message = "قیمت محصول یافت نشد";

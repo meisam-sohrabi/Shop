@@ -15,6 +15,7 @@ using ProductService.IocConfig;
 using System.Text;
 using ProductService.Application.Services.OutBoxProcessors;
 using ProductService.Application.Services.ProductConsumer;
+using ProductService.Application.Services.job;
 namespace ProductService.Api.Helper
 {
     public static class HostingExtensions
@@ -37,6 +38,7 @@ namespace ProductService.Api.Helper
             builder.Services.AddSignalR();
             builder.Services.AddSwaggerGen();
             builder.Services.AddHttpContextAccessor();
+            builder.Services.AddHttpClient<FetchPermissionsAppService>();
             builder.Services.ConfigureIoc();
             builder.Services.AddAuthentication(option =>
             {
@@ -95,9 +97,9 @@ namespace ProductService.Api.Helper
                 });
             });
 
-            builder.Services.AddHostedService<OutBoxPriceProcessor>();
-            builder.Services.AddHostedService<OutBoxInentoryProcessor>();
+            builder.Services.AddHostedService<OutBoxProcessor>();
             builder.Services.AddHostedService<ProductConsumreAppService>();
+            builder.Services.AddHostedService<PermissionConsumerAppService>();
 
             builder.Host.UseSerilog();
             builder.Services.AddStackExchangeRedisCache(option =>
@@ -106,19 +108,19 @@ namespace ProductService.Api.Helper
                 option.InstanceName = "";
             });
 
-            //builder.Services.AddQuartz(q =>
-            //{
-            //    var jobKey = new JobKey("product");
-            //    q.AddJob<JobsAppService>(j => j.WithIdentity(jobKey));
-            //    q.AddTrigger(t => t.ForJob(jobKey).WithIdentity("product-trigger")
-            //    .StartNow()
-            //    .WithSimpleSchedule(s => s.WithIntervalInMinutes(1)
-            //    .RepeatForever()));
-            //});
-            //builder.Services.AddQuartzHostedService(h =>
-            //{
-            //    h.WaitForJobsToComplete = true;
-            //});
+            builder.Services.AddQuartz(q =>
+            {
+                var jobKey = new JobKey("InitialPermissionSync");
+                q.AddJob<FetchPermissionsAppService>(j => j.WithIdentity(jobKey));
+                q.AddTrigger(t => t.ForJob(jobKey).WithIdentity("InitialPermissionSync-trigger")
+                .StartNow()
+                .WithSimpleSchedule(s => s.WithIntervalInSeconds(30)
+                .WithRepeatCount(5)));
+            });
+            builder.Services.AddQuartzHostedService(h =>
+            {
+                h.WaitForJobsToComplete = true;
+            });
 
             //builder.Services.AddHostedService<ConsumerWorker>();
 

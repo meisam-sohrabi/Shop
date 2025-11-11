@@ -19,6 +19,7 @@ namespace AccountService.Application.Services.Mapping
             CreateMap<PermissionEntity, PermissionDto>();
             CreateMap<PermissionDto, PermissionEntity>();
             CreateMap<UserPermissionDto, UserPermissoinEntity>();
+            CreateMap<PermissionEntity, ShowAllPermissions>();
 
         }
     }

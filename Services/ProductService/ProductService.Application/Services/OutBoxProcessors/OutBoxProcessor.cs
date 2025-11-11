@@ -9,11 +9,11 @@ using System.Text;
 
 namespace ProductService.Application.Services.OutBoxProcessors
 {
-    public class OutBoxInentoryProcessor : BackgroundService
+    public class OutBoxProcessor : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
 
-        public OutBoxInentoryProcessor(IServiceScopeFactory scopeFactory)
+        public OutBoxProcessor(IServiceScopeFactory scopeFactory)
         {
             _scopeFactory = scopeFactory;
         }
@@ -30,23 +30,10 @@ namespace ProductService.Application.Services.OutBoxProcessors
                     using var connection = await factory.CreateConnectionAsync(stoppingToken);
                     using var channel = await connection.CreateChannelAsync();
                     await channel.ExchangeDeclareAsync(
-                        exchange: "Inventory-Exchange",
+                        exchange: "Product-Exchange",
                         type: ExchangeType.Direct,
                         durable: true,
                         autoDelete: false,
-                        arguments: null);
-
-                    await channel.QueueDeclareAsync(
-                        queue: "Inventory-Queue",
-                        durable: true,
-                        exclusive: false,
-                        autoDelete: false,
-                        arguments: null);
-
-                    await channel.QueueBindAsync(
-                        queue: "Inventory-Queue",
-                        exchange: "Inventory-Exchange",
-                        routingKey: "Inventory-RoutingKey",
                         arguments: null);
 
                     while (connection.IsOpen && !channel.IsClosed && !stoppingToken.IsCancellationRequested)
@@ -58,20 +45,13 @@ namespace ProductService.Application.Services.OutBoxProcessors
                         var priceQry = scope.ServiceProvider.GetRequiredService<IOutBoxQueryRepository>();
 
                         var messages = await priceQry.GetQueryable()
-                                .Where(c => !c.Sent && c.Event == "AddInventoryEvent")
+                                .Where(c => !c.Sent)
                                 .ToListAsync(stoppingToken);
                         foreach (var msg in messages)
                         {
                             try
                             {
-                                await channel.BasicPublishAsync(
-                                    exchange: "Inventory-Exchange",
-                                    routingKey: "Inventory-RoutingKey",
-                                    mandatory: true,
-                                    basicProperties: properties,
-                                    body: Encoding.UTF8.GetBytes(msg.Content)
-                                );
-
+                                await PublishAsync(msg.Event, msg.Content, channel, properties);
                                 msg.Sent = true;
                                 msg.SentAt = DateTime.Now;
                                 priceCmd.Edit(msg);
@@ -94,6 +74,15 @@ namespace ProductService.Application.Services.OutBoxProcessors
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
 
             }
+        }
+        private async Task PublishAsync(string eventType, string content, IChannel channel, BasicProperties property)
+        {
+            await channel.BasicPublishAsync(
+                        exchange: "Product-Exchange",
+                        routingKey: eventType,
+                        mandatory: true,
+                        basicProperties: property,
+                        body: Encoding.UTF8.GetBytes(content));
         }
     }
 }
