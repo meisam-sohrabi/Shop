@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProductService.Api.Dto;
 using ProductService.Api.Helper;
@@ -8,6 +9,7 @@ using ProductService.ApplicationContract.DTO.Product;
 using ProductService.ApplicationContract.DTO.Search;
 using ProductService.ApplicationContract.DTO.Transaction;
 using ProductService.ApplicationContract.Interfaces.Product;
+using System.Net;
 namespace ProductService.Api.Controllers
 {
     [Route("[controller]")]
@@ -15,19 +17,34 @@ namespace ProductService.Api.Controllers
     public class ProductController : ControllerBase
     {
         private readonly IProductAppService _productAppService;
+        private readonly IValidator<ProductTransactionRequestDto> _transactionValidator;
 
-        public ProductController(IProductAppService productAppService)
+        public ProductController(IProductAppService productAppService, IValidator<ProductTransactionRequestDto> transactionValidator)
         {
             _productAppService = productAppService;
+            _transactionValidator = transactionValidator;
         }
 
 
         [HttpPost("ProductTransaction")]
         [Authorize(Roles = "admin")]
-        //[Permission]
         public async Task<BaseResponseDto<ProductTransactionServiceDto>> ProductTransaction([FromForm] ProductTransactionRequestDto productTransactionDto)
         {
-            var url = await FileStorage.SaveFileAsync(productTransactionDto.File);
+            var validation = _transactionValidator.Validate(productTransactionDto);
+            var output = new BaseResponseDto<ProductTransactionServiceDto>();
+            if (!validation.IsValid)
+            {
+                output.Message = "خطاهای اعتبارسنجی رخ داده است.";
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.BadRequest;
+                output.ValidationErrors = validation.ToDictionary();
+                return output;
+            }
+            string? url = null;
+            if (productTransactionDto.File != null)
+            {
+                 url = await FileStorage.SaveFileAsync(productTransactionDto.File);
+            }
             var transactionService = new ProductTransactionServiceDto
             {
                 categoryId = productTransactionDto.categoryId,

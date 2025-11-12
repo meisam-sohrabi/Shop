@@ -9,11 +9,11 @@ using System.Text;
 
 namespace OrderService.Application.Services.OutBoxProcessor
 {
-    public class OutBoxProductProccessor : BackgroundService
+    public class OutBoxProcessor : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
 
-        public OutBoxProductProccessor(IServiceScopeFactory scopeFactory)
+        public OutBoxProcessor(IServiceScopeFactory scopeFactory)
         {
             _scopeFactory = scopeFactory;
         }
@@ -29,22 +29,9 @@ namespace OrderService.Application.Services.OutBoxProcessor
                     using var connectoin = await factory.CreateConnectionAsync(stoppingToken);
                     using var channel = await connectoin.CreateChannelAsync();
                     await channel.ExchangeDeclareAsync(
-                        exchange: "Product-Publish-Exchange",
+                        exchange: "Order-Exchange",
                         type: ExchangeType.Direct,
                         durable: true, autoDelete: false,
-                        arguments: null);
-
-                    await channel.QueueDeclareAsync(
-                        queue: "Product-Publish-Queue",
-                        durable: true,
-                        exclusive: false,
-                        autoDelete: false,
-                        arguments: null);
-
-                    await channel.QueueBindAsync(
-                        queue: "Product-Publish-Queue",
-                        exchange: "Product-Publish-Exchange",
-                        routingKey: "Product-Publish-RoutingKey",
                         arguments: null);
 
                     //  حلقه داخلی: تا زمانی که connection سالمه
@@ -56,20 +43,14 @@ namespace OrderService.Application.Services.OutBoxProcessor
                         var orderQry = scope.ServiceProvider.GetRequiredService<IOutBoxQueryRepository>();
 
                         var messages = await orderQry.GetQueryable()
-                            .Where(c => !c.Sent && c.Event == "ReduceProductEvent")
+                            .Where(c => !c.Sent)
                             .ToListAsync(stoppingToken);
 
                         foreach (var msg in messages)
                         {
                             try
                             {
-                                await channel.BasicPublishAsync(
-                                    exchange: "Product-Publish-Exchange",
-                                    routingKey: "Product-Publish-RoutingKey",
-                                    mandatory: true,
-                                    basicProperties: properties,
-                                    body: Encoding.UTF8.GetBytes(msg.Content)
-                                );
+                                await PublishAsync(msg.Event, msg.Content, channel, properties);
 
                                 msg.Sent = true;
                                 msg.SentAt = DateTime.Now;
@@ -94,6 +75,16 @@ namespace OrderService.Application.Services.OutBoxProcessor
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
 
             }
+        }
+
+        private async Task PublishAsync(string eventType, string content, IChannel channel, BasicProperties property)
+        {
+            await channel.BasicPublishAsync(
+                        exchange: "Order-Exchange",
+                        routingKey: eventType,
+                        mandatory: true,
+                        basicProperties: property,
+                        body: Encoding.UTF8.GetBytes(content));
         }
     }
 }

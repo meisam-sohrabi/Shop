@@ -79,7 +79,7 @@ namespace AccountService.Application.Services.Permission
 
                 var outbox = new OutBoxMessageEntity
                 {
-                    Event = "PermissionCreated",
+                    Event = "Permission.Created",
                     Content = JsonConvert.SerializeObject(new PermissionEventDto
                     {
                         Id = mapped.Id,

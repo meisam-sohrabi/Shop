@@ -1,29 +1,28 @@
-﻿using InventoryService.ApplicationContract.DTO.Order;
-using InventoryService.ApplicationContract.DTO.ProductInventory;
-using InventoryService.Domain.Entities;
-using InventoryService.InfrastructureContract.Interfaces;
-using InventoryService.InfrastructureContract.Interfaces.Command.ProductInventory;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ProductService.ApplicationContract.DTO.UserPermission;
+using ProductService.Domain.Entities;
+using ProductService.InfrastructureContract.Interfaces;
+using ProductService.InfrastructureContract.Interfaces.Command.Generic;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
 
-namespace InventoryService.Application.Services.InventoryConsumer
+namespace ProductService.Application.Services.ProductConsumer
 {
-    public class OrderConsumerAppService : BackgroundService
+    public class PermissionAssignConsumerAppService : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
 
-        public OrderConsumerAppService(IServiceScopeFactory scopeFactory)
+        public PermissionAssignConsumerAppService(IServiceScopeFactory scopeFactory)
         {
             _scopeFactory = scopeFactory;
         }
-
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             var factory = new ConnectionFactory() { HostName = "localhost" };
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
@@ -33,16 +32,16 @@ namespace InventoryService.Application.Services.InventoryConsumer
                     using var channel = await connection.CreateChannelAsync();
 
                     await channel.QueueDeclareAsync(
-                        queue: "Order-Publish-Queue",
+                        queue: "PermissionAssign-Queue",
                         durable: true,
                         exclusive: false,
                         autoDelete: false,
                         arguments: null);
 
                     await channel.QueueBindAsync(
-                        queue: "Order-Publish-Queue",
-                        exchange: "Order-Exchange",
-                        routingKey: "OrderCreatedEvent");
+                        queue: "PermissionAssign-Queue",
+                        exchange: "Account-Exchange",
+                        routingKey: "UserPermission.*");
 
                     Console.WriteLine(" Connected to RabbitMQ and ready to consume.");
 
@@ -51,29 +50,27 @@ namespace InventoryService.Application.Services.InventoryConsumer
                     {
                         using var scope = _scopeFactory.CreateScope();
                         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-                        var repo = scope.ServiceProvider.GetRequiredService<IProductInventoryCommandRepository>();
+                        var repoCmd = scope.ServiceProvider.GetRequiredService<IGenericCommandRepository<LocalUserPermissionEntity>>();
 
                         try
                         {
                             var body = ea.Body.ToArray();
                             var message = Encoding.UTF8.GetString(body);
-                            var data = JsonSerializer.Deserialize<OrderEventDto>(message);
-
-                            if (data == null || data.ProductDetailId == 0)
+                            var data = JsonSerializer.Deserialize<UserPermissionDto>(message);
+                            if (data == null)
                             {
                                 Console.WriteLine("Invalid message received.");
                                 await channel.BasicNackAsync(ea.DeliveryTag, false, requeue: false);
                                 return;
                             }
 
-                            var entity = new ProductInventoryEntity
-                            {
-                                ProductDetailId = data.ProductDetailId,
-                                QuantityChange = data.QuantityChange,
-                                CreateBy = data.UserId
-                            };
 
-                            await repo.AddAsync(entity);
+                            var userPermission = new LocalUserPermissionEntity
+                            {
+                                UserId = data.UserId,
+                                PermissionId = data.PermissionId
+                            };
+                            await repoCmd.AddAsync(userPermission);
                             await unitOfWork.SaveChangesAsync();
                             await channel.BasicAckAsync(ea.DeliveryTag, false);
                         }
@@ -84,7 +81,7 @@ namespace InventoryService.Application.Services.InventoryConsumer
                         }
                     };
 
-                    await channel.BasicConsumeAsync("Order-Publish-Queue", false, consumer);
+                    await channel.BasicConsumeAsync("PermissionAssign-Queue", false, consumer);
 
                     // دلیل وجود این حلقه تکراری برای حفظ ارتباط هستش و جلوگیری از ساخت کانسیومر جدید
                     // مدیریت ریسورس

@@ -29,8 +29,8 @@ namespace AccountService.Application.Services.OutBoxProcessor
                     using var connection = await factory.CreateConnectionAsync(stoppingToken);
                     using var channel = await connection.CreateChannelAsync();
                     await channel.ExchangeDeclareAsync(
-                        exchange: "Product-Permission-Exchange",
-                        type: ExchangeType.Direct,
+                        exchange: "Account-Exchange",
+                        type: ExchangeType.Topic,
                         durable: true,
                         autoDelete: false,
                         arguments: null);
@@ -54,6 +54,7 @@ namespace AccountService.Application.Services.OutBoxProcessor
                                 msg.Sent = true;
                                 msg.SentAt = DateTime.Now;
                                 priceCmd.Edit(msg);
+                                Console.WriteLine($"***************event {msg.Event}");
                             }
                             catch (Exception ex)
                             {

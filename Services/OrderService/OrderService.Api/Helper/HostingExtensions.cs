@@ -92,8 +92,7 @@ namespace OrderService.Api.Helper
             });
 
 
-            builder.Services.AddHostedService<OutBoxOrderProcessor>();
-            builder.Services.AddHostedService<OutBoxProductProccessor>();
+            builder.Services.AddHostedService<OutBoxProcessor>();
             //builder.Services.AddValidatorsFromAssemblyContaining<>();
 
             builder.Services.AddValidatorsFromAssemblyContaining<OrderRequestDtoValidator>();

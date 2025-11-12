@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
 using ProductService.ApplicationContract.DTO.Permission;
 using ProductService.Domain.Entities;
 using ProductService.InfrastructureContract.Interfaces;
@@ -41,7 +42,7 @@ namespace ProductService.Application.Services.ProductConsumer
                     await channel.QueueBindAsync(
                         queue: "Product-Permission-Queue",
                         exchange: "Account-Exchange",
-                        routingKey: "PermissionCreated");
+                        routingKey: "Permission.*");
 
                     Console.WriteLine(" Connected to RabbitMQ and ready to consume.");
 
@@ -56,9 +57,13 @@ namespace ProductService.Application.Services.ProductConsumer
                         {
                             var body = ea.Body.ToArray();
                             var message = Encoding.UTF8.GetString(body);
-                            var data = JsonSerializer.Deserialize<PermissionEventDto>(message);
+                            var data = JsonConvert.DeserializeObject<PermissionEventDto>(message);
+                            Console.WriteLine($"%%%%%%%%%%%%%%%%message {message}");
+                            Console.WriteLine($"%%%%%%%%%%%%%%%%data {data.Id}");
+
                             if (data == null)
                             {
+
                                 Console.WriteLine("Invalid message received.");
                                 await channel.BasicNackAsync(ea.DeliveryTag, false, requeue: false);
                                 return;

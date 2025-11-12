@@ -16,6 +16,7 @@ using System.Text;
 using ProductService.Application.Services.OutBoxProcessors;
 using ProductService.Application.Services.ProductConsumer;
 using ProductService.Application.Services.job;
+using ProductService.Api.Validators;
 namespace ProductService.Api.Helper
 {
     public static class HostingExtensions
@@ -100,6 +101,7 @@ namespace ProductService.Api.Helper
             builder.Services.AddHostedService<OutBoxProcessor>();
             builder.Services.AddHostedService<ProductConsumreAppService>();
             builder.Services.AddHostedService<PermissionConsumerAppService>();
+            builder.Services.AddHostedService<PermissionAssignConsumerAppService>();
 
             builder.Host.UseSerilog();
             builder.Services.AddStackExchangeRedisCache(option =>
@@ -125,7 +127,7 @@ namespace ProductService.Api.Helper
             //builder.Services.AddHostedService<ConsumerWorker>();
 
             builder.Services.AddValidatorsFromAssemblyContaining<CategoryDtoValidator>();
-
+            builder.Services.AddValidatorsFromAssemblyContaining<ProductTransactionFileValidator>();
 
             //Stimulsoft.Base.StiLicense.Key = ApplicaitonConfiguration.stiLicense;
 

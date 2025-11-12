@@ -10,6 +10,8 @@ using AccountService.InfrastructureContract.Interfaces.Query.Permission;
 using AccountService.InfrastructureContract.Interfaces.Query.UserPermission;
 using System.Net;
 using AccountService.ApplicationContract.Interfaces.UserPermission;
+using Newtonsoft.Json;
+using AccountService.InfrastructureContract.Interfaces.Command.OutBox;
 
 namespace AccountService.Application.Services.UserPermission
 {
@@ -21,13 +23,15 @@ namespace AccountService.Application.Services.UserPermission
         private readonly IAccountQueryRepository _accountQueryRepository;
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IOutBoxCommandRepository _outBoxCommandRepository;
 
         public UserPermissionAppService(IUserPermissionCommandRepository userPermissionCommanRepository
             , IPermissionQueryRepository permissionQueryRepository,
             IUserPermissionQueryRepository userPermissionQueryRepository
             , IAccountQueryRepository accountQueryRepository
             , IMapper mapper,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork
+            ,IOutBoxCommandRepository outBoxCommandRepository)
         {
             _userPermissionCommanRepository = userPermissionCommanRepository;
             _permissionQueryRepository = permissionQueryRepository;
@@ -35,6 +39,7 @@ namespace AccountService.Application.Services.UserPermission
             _accountQueryRepository = accountQueryRepository;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
+            _outBoxCommandRepository = outBoxCommandRepository;
         }
 
         #region Assign Permission
@@ -63,12 +68,39 @@ namespace AccountService.Application.Services.UserPermission
                 return output;
             }
             var mapped = _mapper.Map<UserPermissoinEntity>(userPermissionDto);
-            await _userPermissionCommanRepository.AssignPermissionToUser(mapped);
-            var affectedRows = await _unitOfWork.SaveChangesAsync();
-            if (affectedRows > 0)
+
+            try
             {
-                output.Message = $"پرمیژن با موفقیت به کاربر اختصاص یافت";
+                _unitOfWork.BeginTransaction();
+
+                await _userPermissionCommanRepository.AssignPermissionToUser(mapped);
+                await _unitOfWork.SaveChangesAsync();
+
+
+                var outbox = new OutBoxMessageEntity
+                {
+                    Event = "UserPermission.Assigned",
+                    Content = JsonConvert.SerializeObject(new UserPermissionDto
+                    {
+                        UserId = mapped.UserId,
+                        PermissionId = mapped.PermissionId,
+                    })
+                };
+
+                await _outBoxCommandRepository.AddAsync(outbox);
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+                output.Message = $"پرمیژن  با موفقیت ایجاد شد";
                 output.Success = true;
+            }
+            catch (Exception ex)
+            {
+
+                await _unitOfWork.RollBackTransactionAsync();
+
+                output.Message = "خطای غیرمنتظره رخ داد" + ex.Message;
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.InternalServerError;
             }
             output.StatusCode = output.Success ? HttpStatusCode.Created : HttpStatusCode.BadRequest;
             return output;
