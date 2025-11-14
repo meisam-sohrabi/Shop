@@ -1,6 +1,8 @@
 ﻿using LogService;
 using Microsoft.Extensions.DependencyInjection;
+using ProductService.Application.Services;
 using ProductService.Application.Services.Category;
+using ProductService.Application.Services.Hand;
 using ProductService.Application.Services.Mapping;
 using ProductService.Application.Services.Product;
 using ProductService.Application.Services.ProductBrand;

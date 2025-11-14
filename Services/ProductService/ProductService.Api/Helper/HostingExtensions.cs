@@ -3,20 +3,20 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Quartz;
-using Serilog;
-using Serilog.Sinks.Elasticsearch;
-
+using ProductService.Api.Validators;
+using ProductService.Application.Services;
+using ProductService.Application.Services.job;
+using ProductService.Application.Services.OutBoxProcessors;
+using ProductService.Application.Services.ProductConsumer;
 //using ProductService.Application.Services.Job;
 //using ProductService.Application.Services.SignalR;
 //using ProductService.Application.Services.Worker;
 using ProductService.ApplicationContract.Validators.Category;
 using ProductService.IocConfig;
+using Quartz;
+using Serilog;
+using Serilog.Sinks.Elasticsearch;
 using System.Text;
-using ProductService.Application.Services.OutBoxProcessors;
-using ProductService.Application.Services.ProductConsumer;
-using ProductService.Application.Services.job;
-using ProductService.Api.Validators;
 namespace ProductService.Api.Helper
 {
     public static class HostingExtensions
@@ -97,7 +97,6 @@ namespace ProductService.Api.Helper
                     },
                 });
             });
-
             builder.Services.AddHostedService<OutBoxProcessor>();
             builder.Services.AddHostedService<ProductConsumreAppService>();
             builder.Services.AddHostedService<PermissionConsumerAppService>();

@@ -90,7 +90,7 @@ namespace AccountService.Application.Services.UserPermission
                 await _outBoxCommandRepository.AddAsync(outbox);
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitTransactionAsync();
-                output.Message = $"پرمیژن  با موفقیت ایجاد شد";
+                output.Message = $"پرمیژن  با موفقیت اختصاص داده شد";
                 output.Success = true;
             }
             catch (Exception ex)

@@ -58,9 +58,6 @@ namespace ProductService.Application.Services.ProductConsumer
                             var body = ea.Body.ToArray();
                             var message = Encoding.UTF8.GetString(body);
                             var data = JsonConvert.DeserializeObject<PermissionEventDto>(message);
-                            Console.WriteLine($"%%%%%%%%%%%%%%%%message {message}");
-                            Console.WriteLine($"%%%%%%%%%%%%%%%%data {data.Id}");
-
                             if (data == null)
                             {
 
