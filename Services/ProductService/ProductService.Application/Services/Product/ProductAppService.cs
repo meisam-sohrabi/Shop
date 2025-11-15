@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using ProductService.ApplicationContract;
 using ProductService.ApplicationContract.DTO.Base;
+using ProductService.ApplicationContract.DTO.Category;
 using ProductService.ApplicationContract.DTO.Inventory;
 using ProductService.ApplicationContract.DTO.Price;
 using ProductService.ApplicationContract.DTO.Product;
@@ -120,103 +121,88 @@ namespace ProductService.Application.Services.Product
         #endregion
 
         #region Edit
-        //public async Task<BaseResponseDto<ProductResponseDto>> EditProduct(int id, ProductRequestDto productDto)
-        //{
-        //    var output = new BaseResponseDto<ProductResponseDto>
-        //    {
-        //        Message = "خطا در بروزرسانی محصول",
-        //        Success = false,
-        //        StatusCode = HttpStatusCode.BadRequest
-        //    };
-        // در صورتی که بخوایم دسته بندی و برند و هم عوض کنیم اونوقت باید ووردی هم بدیم
-        //var categoryExist = await _categoryQueryRepository.GetQueryable()
-        //.AnyAsync(c => c.Id == productDto.CategoryId);
+        public async Task<BaseResponseDto<ProductResponseDto>> EditProduct(int id, ProductRequestDto productDto)
+        {
+            var output = new BaseResponseDto<ProductResponseDto>
+            {
+                Message = "خطا در بروزرسانی محصول",
+                Success = false,
+                StatusCode = HttpStatusCode.BadRequest
+            };
+            // در صورتی که بخوایم دسته بندی و برند و هم عوض کنیم اونوقت باید ووردی هم بدیم
+            var categoryExist = await _categoryQueryRepository.GetQueryable()
+            .AnyAsync(c => c.Id == productDto.CategoryId);
 
-        //if (!categoryExist)
-        //{
-        //    output.Message = "دسته‌بندی موردنظر وجود ندارد";
-        //    output.Success = false;
-        //    output.StatusCode = HttpStatusCode.NotFound;
-        //    return output;
-        //}
-        //var brandExist = await _productBrandQueryRepository.GetQueryable()
-        //.AnyAsync(c => c.Id == productDto.ProductBrandId);
-        //if (!brandExist)
-        //{
-        //    output.Message = "برند موردنظر وجود ندارد";
-        //    output.Success = false;
-        //    output.StatusCode = HttpStatusCode.NotFound;
-        //    return output;
-        //}
+            if (!categoryExist)
+            {
+                output.Message = "دسته‌بندی موردنظر وجود ندارد";
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.NotFound;
+                return output;
+            }
+            var brandExist = await _productBrandQueryRepository.GetQueryable()
+            .AnyAsync(c => c.Id == productDto.ProductBrandId);
+            if (!brandExist)
+            {
+                output.Message = "برند موردنظر وجود ندارد";
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.NotFound;
+                return output;
+            }
 
+            var validationResult = await _productValidator.ValidateAsync(productDto);
 
-        // در این قسمت ولیدیشن صورت میگیره
+            // در این قسمت چک میشه و یک دیکشنری که کلید اسم پراپرتی هستش و ولیو لیستی از خطا
 
-        //var validationResult = await _productValidator.ValidateAsync(productDto);
+            if (!validationResult.IsValid)
+            {
+                output.Message = "خطاهای اعتبارسنجی رخ داده است.";
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.BadRequest;
+                output.ValidationErrors = validationResult.ToDictionary();
+                return output;
+            }
+            var productExist = await _productQueryRespository.GetQueryable()
+                .FirstOrDefaultAsync(c => c.Id == id);
 
-        // در این قسمت چک میشه و یک دیکشنری که کلید اسم پراپرتی هستش و ولیو لیستی از خطا
+            if (productExist == null)
+            {
+                output.Message = "محصول موردنظر یافت نشد";
+                output.Success = false;
+                output.StatusCode = HttpStatusCode.NotFound;
+                return output;
+            }
+            //var oldQuantity = productExist.Quantity;
+            //var newQuantity = productDto.Quantity;
+            //var quantityChanged = oldQuantity != newQuantity;
+            var mapped = _mapper.Map(productDto,productExist);
 
-        //if (!validationResult.IsValid)
-        //{
-        //    output.Message = "خطاهای اعتبارسنجی رخ داده است.";
-        //    output.Success = false;
-        //    output.StatusCode = HttpStatusCode.BadRequest;
-        //    output.ValidationErrors = validationResult.ToDictionary();
-        //    return output;
-        //}
-        //var productExist = await _productQueryRespository.GetQueryable()
-        //    .FirstOrDefaultAsync(c => c.Id == id);
+            //await _unitOfWork.BeginTransactionAsync();
 
-        //if (productExist == null)
-        //{
-        //    output.Message = "محصول موردنظر یافت نشد";
-        //    output.Success = false;
-        //    output.StatusCode = HttpStatusCode.NotFound;
-        //    return output;
-        //}
-        //var oldQuantity = productExist.Quantity;
-        //var newQuantity = productDto.Quantity;
-        //var quantityChanged = oldQuantity != newQuantity;
-        //try
-        //{
-        //    await _unitOfWork.BeginTransactionAsync();
-
-        //    var mapped = _mapper.Map(productDto, productExist);
-        //    _productCommandRepository.Edit(mapped);
+            _productCommandRepository.Edit(productExist);
 
 
-        // use rabbit soon.
-        //if (quantityChanged)  
-        //{
-        //    var diff = newQuantity - oldQuantity;
-        //    var inventory = new ProductInventoryEntity
-        //    {
-        //        QuantityChange = diff,
-        //        ProductId = productExist.Id,
-        //    };
-        //    await _productInventoryCommandRepository.Add(inventory);
-        //}
+            //  use rabbit soon.
+            //if (quantityChanged)
+            //    {
+            //        var diff = newQuantity - oldQuantity;
+            //        var inventory = new ProductInventoryEntity
+            //        {
+            //            QuantityChange = diff,
+            //            ProductId = productExist.Id,
+            //        };
+            //        await _productInventoryCommandRepository.Add(inventory);
+            //    }
+            var affectedRows = await _unitOfWork.SaveChangesAsync();
+            if (affectedRows > 0)
+            {
+                output.Message = "دسته بندی با موفقیت به روزرسانی شد";
+                output.Success = true;
+            }
+            output.StatusCode = output.Success ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
+            return output;
 
-
-        //    await _unitOfWork.SaveChangesAsync();
-        //    await _unitOfWork.CommitTransactionAsync();
-
-        //    output.Message = "محصول  با موفقیت به روزرسانی شد";
-        //    output.Success = true;
-        //    output.StatusCode = HttpStatusCode.OK;
-
-        //}
-        //catch (Exception ex)
-        //{
-
-        //    await _unitOfWork.RollBackTransactionAsync();
-
-        //    output.Message = "خطای غیرمنتظره رخ داد" + ex.Message;
-        //    output.Success = false;
-        //    output.StatusCode = HttpStatusCode.InternalServerError;
-        //}
-        //return output;
-        //}
+        }
         #endregion
 
         #region Delete
@@ -389,7 +375,19 @@ namespace ProductService.Application.Services.Product
             {
                 output.Message = "اطلاعات مورد نظر با موفقیت دریافت شد";
                 output.Success = true;
-                output.Data = spData;
+                output.Data = spData.Select(c=> new ProductWithInventoryDto
+                {
+                    ProductID = c.ProductID,
+                    CategoryName = c.CategoryName,
+                    CategoryStatus = c.CategoryStatus,
+                    ChangeDate = c.ChangeDate,
+                    QuantityChange = c.QuantityChange,
+                    ProductBrand = c.ProductBrand,
+                    ProductBrandDescription = c.ProductBrandDescription,
+                    ProductDescription = c.ProductDescription,
+                    ProductName = c.ProductName,
+                    ProductQuantity = c.ProductQuantity,
+                }).ToList();
             }
             output.StatusCode = output.Success ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
             return output;

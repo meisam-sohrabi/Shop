@@ -13,6 +13,7 @@ namespace ProductService.Application.Services.Mapping
             CreateMap<CategoryDto, CategoryEntity>();
             CreateMap<ProductRequestDto, ProductEntity>();
             CreateMap<ProductBrandDto, ProductBrandEntity>();
+            CreateMap<ProductRequestDto,ProductEntity>();
         }
     }
 }

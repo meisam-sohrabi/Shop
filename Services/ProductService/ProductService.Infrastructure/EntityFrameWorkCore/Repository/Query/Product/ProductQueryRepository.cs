@@ -1,8 +1,9 @@
 ﻿using Dapper;
 using Microsoft.EntityFrameworkCore;
-using ProductService.Infrastructure.EntityFrameWorkCore.AppDbContext;
 using ProductService.ApplicationContract.DTO.Product;
 using ProductService.Domain.Entities;
+using ProductService.Infrastructure.EntityFrameWorkCore.AppDbContext;
+using ProductService.InfrastructureContract.DapperModel;
 using ProductService.InfrastructureContract.Interfaces.Query.Product;
 using System.Data;
 namespace ProductService.Infrastructure.EntityFrameWorkCore.Repository.Query.Product
@@ -18,7 +19,7 @@ namespace ProductService.Infrastructure.EntityFrameWorkCore.Repository.Query.Pro
 
 
         #region GetByParametersThroughSP
-        public async Task<List<ProductWithInventoryDto>> GetProductsByDateAndTextAsync(string? textSearch, DateTime? startDate, DateTime? endDate)
+        public async Task<List<ProductWithInventoryRecord>> GetProductsByDateAndTextAsync(string? textSearch, DateTime? startDate, DateTime? endDate)
         {
             var procedureName = "GetProductByDateAndTextSearch";
             var parameters = new { textSearch, startDate, endDate };
@@ -28,7 +29,7 @@ namespace ProductService.Infrastructure.EntityFrameWorkCore.Repository.Query.Pro
                 {
                     connection.Open();
                 }
-                var affectedRows = await connection.QueryAsync<ProductWithInventoryDto>(procedureName, parameters, commandType: CommandType.StoredProcedure);
+                var affectedRows = await connection.QueryAsync<ProductWithInventoryRecord>(procedureName, parameters, commandType: CommandType.StoredProcedure);
                 return affectedRows.ToList();
             }
 

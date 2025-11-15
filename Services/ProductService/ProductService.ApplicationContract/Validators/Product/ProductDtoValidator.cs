@@ -14,5 +14,6 @@ namespace ShopService.ApplicationContract.Validators.Product
                 .NotEmpty().WithMessage("Description is required.")
                 .MaximumLength(300);
         }
+                   
     }
 }

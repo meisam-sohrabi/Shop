@@ -1,11 +1,11 @@
-﻿using ProductService.ApplicationContract.DTO.Product;
-using ProductService.Domain.Entities;
+﻿using ProductService.Domain.Entities;
+using ProductService.InfrastructureContract.DapperModel;
 
 namespace ProductService.InfrastructureContract.Interfaces.Query.Product
 {
     public interface IProductQueryRespository
     {
         IQueryable<ProductEntity> GetQueryable();
-        Task<List<ProductWithInventoryDto>> GetProductsByDateAndTextAsync(string? textSearch, DateTime? startDate, DateTime? endDate);
+        Task<List<ProductWithInventoryRecord>> GetProductsByDateAndTextAsync(string? textSearch, DateTime? startDate, DateTime? endDate);
     }
 }
