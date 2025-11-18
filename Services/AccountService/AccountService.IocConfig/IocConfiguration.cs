@@ -21,7 +21,6 @@ using AccountService.Infrastructure.EntityFrameWorkCore.Repository.Query.OutBox;
 using AccountService.Infrastructure.EntityFrameWorkCore.Repository.Query.Permission;
 using AccountService.Infrastructure.EntityFrameWorkCore.Repository.Query.Role;
 using AccountService.Infrastructure.EntityFrameWorkCore.Repository.Query.UserPermission;
-using AccountService.Infrastructure.EntityFrameWorkCore.Seed;
 using AccountService.Infrastructure.EntityFrameWorkCore.UnitOfWork;
 using AccountService.InfrastructureContract.Interfaces;
 using AccountService.InfrastructureContract.Interfaces.Command.Account;
@@ -46,7 +45,6 @@ namespace AccountService.IocConfig
 
             services.AddDbContext<ApplicationDbContext>();
             services.AddAutoMapper(typeof(MappingApplication).Assembly);
-            services.AddScoped<DataSeeds>();
             services.AddScoped<IAccountCommandRepository, AccountCommandRepository>();
             services.AddScoped<IAccountQueryRepository, AccountQueryRepository>();
             services.AddScoped<IRoleCommandRepository, RoleCommandRepository>();
@@ -60,9 +58,9 @@ namespace AccountService.IocConfig
             services.AddScoped<IRoleAppService, RoleAppService>();
             services.AddScoped<IPermissionAppService, PermissionAppService>();
             services.AddScoped<IUserPermissionAppService, UserPermissionAppService>();
-            services.AddScoped<IUnitOfWork,UnitOfWork>();
-            services.AddScoped<IOutBoxCommandRepository,OutBoxCommandRepository>();
-            services.AddScoped<IOutBoxQueryRepository,OutBoxQueryRepository>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IOutBoxCommandRepository, OutBoxCommandRepository>();
+            services.AddScoped<IOutBoxQueryRepository, OutBoxQueryRepository>();
             services.AddValidatorsFromAssemblyContaining<CreateUserDtoValidator>();
             return services;
         }

@@ -1,8 +1,6 @@
 ﻿using LogService;
 using Microsoft.Extensions.DependencyInjection;
-using ProductService.Application.Services;
 using ProductService.Application.Services.Category;
-using ProductService.Application.Services.Hand;
 using ProductService.Application.Services.Mapping;
 using ProductService.Application.Services.Product;
 using ProductService.Application.Services.ProductBrand;
@@ -61,8 +59,8 @@ namespace ProductService.IocConfig
             services.AddScoped<IProductBrandQueryRepository, ProductBrandQueryRepository>();
             services.AddScoped<IProductDetailQueryRepository, ProductDetailQueryRepository>();
             services.AddScoped<IProductImageCommandRepository, ProductImageCommandRepository>();
-            services.AddScoped<IOutBoxCommandRepository,OutBoxCommandRepository>();    
-            services.AddScoped<IOutBoxQueryRepository,OutBoxQueryRepository>();
+            services.AddScoped<IOutBoxCommandRepository, OutBoxCommandRepository>();
+            services.AddScoped<IOutBoxQueryRepository, OutBoxQueryRepository>();
             services.AddScoped(typeof(IGenericQueryRepository<>), typeof(GenericQueryRepository<>));
             services.AddScoped(typeof(IGenericCommandRepository<>), typeof(GenericCommandRepository<>));
             //services.AddScoped<ICookieAppService, CookieAppService>();

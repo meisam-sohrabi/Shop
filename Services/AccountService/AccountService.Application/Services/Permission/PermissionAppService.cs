@@ -74,7 +74,7 @@ namespace AccountService.Application.Services.Permission
             {
                 _unitOfWork.BeginTransaction();
 
-                _permissionCommandRepository.Add(mapped);
+               await _permissionCommandRepository.AddAsync(mapped);
                 await _unitOfWork.SaveChangesAsync();
 
                 var outbox = new OutBoxMessageEntity
@@ -167,7 +167,7 @@ namespace AccountService.Application.Services.Permission
                 return output;
             }
             var mapped = _mapper.Map(permissionDto, permissionExist);
-            _permissionCommandRepository.Update(mapped);
+            _permissionCommandRepository.Edit(mapped);
             var affectedRows = await _unitOfWork.SaveChangesAsync();
             if (affectedRows > 0)
             {

@@ -1,13 +1,10 @@
-﻿using Microsoft.AspNetCore.Identity;
-using AccountService.Domain.Entities;
+﻿using AccountService.Domain.Entities;
+using AccountService.InfrastructureContract.Interfaces.Command.Generic;
 
 namespace AccountService.InfrastructureContract.Interfaces.Command.Permission
 {
-    public interface IPermissionCommandRepository
+    public interface IPermissionCommandRepository : IGenericCommandRepository<PermissionEntity>
     {
-        void Add(PermissionEntity permissionEntity);
-        void Update(PermissionEntity permissionEntity);
-        void Delete(PermissionEntity permissionEntity);
 
     }
 }

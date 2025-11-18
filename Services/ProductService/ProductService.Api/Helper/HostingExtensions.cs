@@ -4,10 +4,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ProductService.Api.Validators;
-using ProductService.Application.Services;
 using ProductService.Application.Services.job;
 using ProductService.Application.Services.OutBoxProcessors;
 using ProductService.Application.Services.ProductConsumer;
+
 //using ProductService.Application.Services.Job;
 //using ProductService.Application.Services.SignalR;
 //using ProductService.Application.Services.Worker;
@@ -127,6 +127,10 @@ namespace ProductService.Api.Helper
 
             builder.Services.AddValidatorsFromAssemblyContaining<CategoryDtoValidator>();
             builder.Services.AddValidatorsFromAssemblyContaining<ProductTransactionFileValidator>();
+
+
+
+
 
             //Stimulsoft.Base.StiLicense.Key = ApplicaitonConfiguration.stiLicense;
 

@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ProductService.Domain.Entities;
 
-namespace AccountService.Infrastructure.EntityFrameWorkCore.EntityConfigurations
+namespace ProductService.Infrastructure.EntityFrameWorkCore.EntityConfigurations
 {
     public class UserPermissionEntityConfiguration : IEntityTypeConfiguration<LocalUserPermissionEntity>
     {

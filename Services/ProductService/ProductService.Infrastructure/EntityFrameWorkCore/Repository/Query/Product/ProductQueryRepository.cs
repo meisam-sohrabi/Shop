@@ -1,6 +1,5 @@
 ﻿using Dapper;
 using Microsoft.EntityFrameworkCore;
-using ProductService.ApplicationContract.DTO.Product;
 using ProductService.Domain.Entities;
 using ProductService.Infrastructure.EntityFrameWorkCore.AppDbContext;
 using ProductService.InfrastructureContract.DapperModel;
