@@ -1,20 +1,18 @@
 ﻿using AutoMapper;
+using BaseConfig;
 using FluentValidation;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using ProductService.ApplicationContract;
 using ProductService.ApplicationContract.DTO.Base;
-using ProductService.ApplicationContract.DTO.Category;
-using ProductService.ApplicationContract.DTO.Inventory;
-using ProductService.ApplicationContract.DTO.Price;
 using ProductService.ApplicationContract.DTO.Product;
 using ProductService.ApplicationContract.DTO.Search;
 using ProductService.ApplicationContract.DTO.Transaction;
 using ProductService.ApplicationContract.Interfaces.Product;
 using ProductService.Domain.Entities;
 using ProductService.InfrastructureContract.Interfaces;
-using ProductService.InfrastructureContract.Interfaces.Command.OutBox;
 using ProductService.InfrastructureContract.Interfaces.Command.Product;
 using ProductService.InfrastructureContract.Interfaces.Command.ProductDetail;
 using ProductService.InfrastructureContract.Interfaces.Command.ProductImage;
@@ -43,7 +41,7 @@ namespace ProductService.Application.Services.Product
         private readonly IValidator<ProductArabicToPersianDto> _productArabicToPersianValidator;
         private readonly IUserAppService _userService;
         private readonly IProductImageCommandRepository _productImageCommandRepository;
-        private readonly IOutBoxCommandRepository _outBoxCommandRepository;
+        private readonly IPublishEndpoint _publishEndpoint;
 
         public ProductAppService(IProductQueryRespository productQueryRespository,
             IProductCommandRepository productCommandRepository,
@@ -58,7 +56,7 @@ namespace ProductService.Application.Services.Product
             , IValidator<ProductArabicToPersianDto> productArabicToPersianValidator
             , IUserAppService userService
             , IProductImageCommandRepository productImageCommandRepository
-            , IOutBoxCommandRepository outBoxCommandRepository)
+            , IPublishEndpoint publishEndpoint)
         {
             _productQueryRespository = productQueryRespository;
             _productCommandRepository = productCommandRepository;
@@ -75,7 +73,7 @@ namespace ProductService.Application.Services.Product
             _productArabicToPersianValidator = productArabicToPersianValidator;
             _userService = userService;
             _productImageCommandRepository = productImageCommandRepository;
-            _outBoxCommandRepository = outBoxCommandRepository;
+            _publishEndpoint = publishEndpoint;
         }
 
 
@@ -175,7 +173,7 @@ namespace ProductService.Application.Services.Product
             //var oldQuantity = productExist.Quantity;
             //var newQuantity = productDto.Quantity;
             //var quantityChanged = oldQuantity != newQuantity;
-            var mapped = _mapper.Map(productDto,productExist);
+            var mapped = _mapper.Map(productDto, productExist);
 
             //await _unitOfWork.BeginTransactionAsync();
 
@@ -375,7 +373,7 @@ namespace ProductService.Application.Services.Product
             {
                 output.Message = "اطلاعات مورد نظر با موفقیت دریافت شد";
                 output.Success = true;
-                output.Data = spData.Select(c=> new ProductWithInventoryDto
+                output.Data = spData.Select(c => new ProductWithInventoryDto
                 {
                     ProductID = c.ProductID,
                     CategoryName = c.CategoryName,
@@ -453,8 +451,19 @@ namespace ProductService.Application.Services.Product
                     await _unitOfWork.SaveChangesAsync();
 
                     var detail = await AddProductDetailAndImageAsync(productTransactionDto, product);
-                    await AddOutboxMessagesAsync(productTransactionDto, detail);
 
+                    await _publishEndpoint.Publish(new InventoryEventDto
+                    {
+                        QuantityChange = +detail.Quantity,
+                        ProductDetailId = detail.Id,
+                        UserId = _userService.GetCurrentUser()
+                    });
+                    await _publishEndpoint.Publish(new PriceEventDto
+                    {
+                        ProductDetailId = detail.Id,
+                        Price = productTransactionDto.Price,
+                        UserId = _userService.GetCurrentUser()
+                    });
                     await _unitOfWork.SaveChangesAsync();
                     await _unitOfWork.CommitTransactionAsync();
                     output.Message = "محصول  با موفقیت ایجاد شد";
@@ -467,7 +476,19 @@ namespace ProductService.Application.Services.Product
                 {
                     // در صورت وجود محصول فقط جزیات و عکس ذخیره شود
                     var detail = await AddProductDetailAndImageAsync(productTransactionDto, ProductExist);
-                    await AddOutboxMessagesAsync(productTransactionDto, detail);
+
+                    await _publishEndpoint.Publish(new InventoryEventDto
+                    {
+                        QuantityChange = +detail.Quantity,
+                        ProductDetailId = detail.Id,
+                        UserId = _userService.GetCurrentUser()
+                    });
+                    await _publishEndpoint.Publish(new PriceEventDto
+                    {
+                        ProductDetailId = detail.Id,
+                        Price = productTransactionDto.Price,
+                        UserId = _userService.GetCurrentUser()
+                    });
 
                     await _unitOfWork.SaveChangesAsync();
                     await _unitOfWork.CommitTransactionAsync();
@@ -518,40 +539,7 @@ namespace ProductService.Application.Services.Product
         }
         #endregion
 
-
-        #region AddOutBoxMessagePrivateMethod
-        private async Task AddOutboxMessagesAsync(ProductTransactionServiceDto dto, ProductDetailEntity detail)
-        {
-            var userId = _userService.GetCurrentUser();
-
-            var priceMessage = new OutBoxMessagesEntity
-            {
-                Event = "AddPriceEvent",
-                Content = JsonConvert.SerializeObject(new PriceEventDto
-                {
-                    ProductDetailId = detail.Id,
-                    Price = dto.Price,
-                    UserId = _userService.GetCurrentUser()
-                }),
-
-            };
-
-            var inventoryMessage = new OutBoxMessagesEntity
-            {
-                Event = "AddInventoryEvent",
-                Content = JsonConvert.SerializeObject(new InventoryEventDto
-                {
-                    QuantityChange = +detail.Quantity,
-                    ProductDetailId = detail.Id,
-                    UserId = _userService.GetCurrentUser()
-                })
-            };
-
-            await _outBoxCommandRepository.AddAsync(priceMessage);
-            await _outBoxCommandRepository.AddAsync(inventoryMessage);
-        }
-        #endregion
-
+      
 
         #endregion
 

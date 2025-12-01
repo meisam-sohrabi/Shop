@@ -4,16 +4,14 @@ using AccountService.ApplicationContract.DTO.UserPermission;
 using AccountService.ApplicationContract.Interfaces.Permission;
 using AccountService.Domain.Entities;
 using AccountService.InfrastructureContract.Interfaces;
-using AccountService.InfrastructureContract.Interfaces.Command.OutBox;
 using AccountService.InfrastructureContract.Interfaces.Command.Permission;
 using AccountService.InfrastructureContract.Interfaces.Query.Account;
 using AccountService.InfrastructureContract.Interfaces.Query.Permission;
 using AutoMapper;
 using FluentValidation;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using System.Net;
-
 namespace AccountService.Application.Services.Permission
 {
     public class PermissionAppService : IPermissionAppService
@@ -24,13 +22,13 @@ namespace AccountService.Application.Services.Permission
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAccountQueryRepository _accountQueryRepository;
         private readonly IValidator<PermissionDto> _permissionValidator;
-        private readonly IOutBoxCommandRepository _outBoxCommandRepository;
+        private readonly IPublishEndpoint _publishEndpoint;
 
         public PermissionAppService(IPermissionCommandRepository permissionCommandRepository
             , IPermissionQueryRepository permissionQueryRepository, IMapper mapper, IUnitOfWork unitOfWork
             , IAccountQueryRepository accountQueryRepository
             , IValidator<PermissionDto> permissionValidator
-            , IOutBoxCommandRepository outBoxCommandRepository)
+            , IPublishEndpoint publishEndpoint)
         {
             _permissionCommandRepository = permissionCommandRepository;
             _permissionQueryRepository = permissionQueryRepository;
@@ -38,7 +36,7 @@ namespace AccountService.Application.Services.Permission
             _unitOfWork = unitOfWork;
             _accountQueryRepository = accountQueryRepository;
             _permissionValidator = permissionValidator;
-            _outBoxCommandRepository = outBoxCommandRepository;
+            _publishEndpoint = publishEndpoint;
         }
 
 
@@ -74,23 +72,17 @@ namespace AccountService.Application.Services.Permission
             {
                 _unitOfWork.BeginTransaction();
 
-               await _permissionCommandRepository.AddAsync(mapped);
+                await _permissionCommandRepository.AddAsync(mapped);
                 await _unitOfWork.SaveChangesAsync();
 
-                var outbox = new OutBoxMessageEntity
+                await _publishEndpoint.Publish(new BaseConfig.PermissionEventDto
                 {
-                    Event = "Permission.Created",
-                    Content = JsonConvert.SerializeObject(new PermissionEventDto
-                    {
-                        Id = mapped.Id,
-                        Action = mapped.Action,
-                        Resource = mapped.Resource,
-                        Description = mapped.Description,
-                    })
+                    Id = mapped.Id,
+                    Action = mapped.Action,
+                    Resource = mapped.Resource,
+                    Description = mapped.Description,
+                });
 
-                };
-
-                await _outBoxCommandRepository.AddAsync(outbox);
                 await _unitOfWork.SaveChangesAsync();
 
                 await _unitOfWork.CommitTransactionAsync();

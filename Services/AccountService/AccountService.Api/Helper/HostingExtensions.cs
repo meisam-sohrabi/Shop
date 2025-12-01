@@ -1,6 +1,4 @@
-﻿using AccountService.Application.Services.Job;
-using AccountService.Application.Services.OutBoxProcessor;
-using AccountService.Domain.Entities;
+﻿using AccountService.Domain.Entities;
 using AccountService.Infrastructure.EntityFrameWorkCore.AppDbContext;
 using AccountService.IocConfig;
 using BaseConfig;
@@ -8,7 +6,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Quartz;
 using System.Text;
 namespace AccountService.Api.Helper
 {
@@ -18,7 +15,6 @@ namespace AccountService.Api.Helper
         {
             // Add services to the container.
 
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddControllers();
             builder.Services.AddOpenApi();
             builder.Services.AddIdentity<CustomUserEntity, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>();
@@ -86,22 +82,8 @@ namespace AccountService.Api.Helper
                 });
             });
 
-            builder.Services.AddHostedService<OutBoxProcessor>();
 
 
-            builder.Services.AddQuartz(option =>
-            {
-                var jobKey = new JobKey("SeedData");
-                option.AddJob<SeedDataAppService>(j => j.WithIdentity(jobKey));
-                option.AddTrigger(t => t.ForJob(jobKey).WithIdentity("SeedData-trigger")
-                .StartNow()
-                .WithSimpleSchedule(s => s.WithIntervalInSeconds(30)
-                .WithRepeatCount(1)));
-            });
-            builder.Services.AddQuartzHostedService(h =>
-            {
-                h.WaitForJobsToComplete = true;
-            });
 
             return builder.Build();
 
@@ -113,7 +95,7 @@ namespace AccountService.Api.Helper
 
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
             {
                 app.MapOpenApi();
                 app.UseSwagger();

@@ -4,16 +4,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ProductService.Api.Validators;
-using ProductService.Application.Services.job;
-using ProductService.Application.Services.OutBoxProcessors;
-using ProductService.Application.Services.ProductConsumer;
-
-//using ProductService.Application.Services.Job;
 //using ProductService.Application.Services.SignalR;
-//using ProductService.Application.Services.Worker;
-using ProductService.ApplicationContract.Validators.Category;
 using ProductService.IocConfig;
-using Quartz;
 using Serilog;
 using Serilog.Sinks.Elasticsearch;
 using System.Text;
@@ -34,12 +26,11 @@ namespace ProductService.Api.Helper
                 .CreateLogger();
 
             builder.Services.AddControllers();
-            //builder.Services.AddOpenApi();
+            builder.Services.AddOpenApi();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSignalR();
             builder.Services.AddSwaggerGen();
             builder.Services.AddHttpContextAccessor();
-            builder.Services.AddHttpClient<FetchPermissionsAppService>();
             builder.Services.ConfigureIoc();
             builder.Services.AddAuthentication(option =>
             {
@@ -97,36 +88,12 @@ namespace ProductService.Api.Helper
                     },
                 });
             });
-            builder.Services.AddHostedService<OutBoxProcessor>();
-            builder.Services.AddHostedService<ProductConsumreAppService>();
-            builder.Services.AddHostedService<PermissionConsumerAppService>();
-            builder.Services.AddHostedService<PermissionAssignConsumerAppService>();
 
             builder.Host.UseSerilog();
-            builder.Services.AddStackExchangeRedisCache(option =>
-            {
-                option.Configuration = "localhost:6379";
-                option.InstanceName = "";
-            });
 
-            builder.Services.AddQuartz(q =>
-            {
-                var jobKey = new JobKey("InitialPermissionSync");
-                q.AddJob<FetchPermissionsAppService>(j => j.WithIdentity(jobKey));
-                q.AddTrigger(t => t.ForJob(jobKey).WithIdentity("InitialPermissionSync-trigger")
-                .StartNow()
-                .WithSimpleSchedule(s => s.WithIntervalInSeconds(30)
-                .WithRepeatCount(5)));
-            });
-            builder.Services.AddQuartzHostedService(h =>
-            {
-                h.WaitForJobsToComplete = true;
-            });
 
-            //builder.Services.AddHostedService<ConsumerWorker>();
-
-            builder.Services.AddValidatorsFromAssemblyContaining<CategoryDtoValidator>();
             builder.Services.AddValidatorsFromAssemblyContaining<ProductTransactionFileValidator>();
+
 
 
 
@@ -138,12 +105,10 @@ namespace ProductService.Api.Helper
         }
 
 
-
-
         public static WebApplication ConfigurePipelines(this WebApplication app)
         {
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
             {
                 //app.MapOpenApi();
                 app.UseSwagger();

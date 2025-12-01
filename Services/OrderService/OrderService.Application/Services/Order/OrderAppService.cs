@@ -1,9 +1,10 @@
-﻿using FluentValidation;
+﻿using BaseConfig;
+using FluentValidation;
+using MassTransit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using OrderService.ApplicationContract.DTO.Base;
-using OrderService.ApplicationContract.DTO.Inventory;
 using OrderService.ApplicationContract.DTO.Order;
 using OrderService.ApplicationContract.DTO.ProductDetail;
 using OrderService.ApplicationContract.DTO.ProductPriceResponse;
@@ -12,11 +13,9 @@ using OrderService.ApplicationContract.Interfaces.Order;
 using OrderService.Domain.Entities;
 using OrderService.InfrastructureContract.Interfaces;
 using OrderService.InfrastructureContract.Interfaces.Command.Order;
-using OrderService.InfrastructureContract.Interfaces.Command.OutBox;
 using OrderService.InfrastructureContract.Interfaces.Query.Order;
 using System.Net;
 using System.Net.Http.Headers;
-
 namespace OrderService.Application.Services.Order
 {
     public class OrderAppService : IOrderAppService
@@ -26,27 +25,27 @@ namespace OrderService.Application.Services.Order
         private readonly IUserAppService _userAppService;
         private readonly IOrderCommandRepository _orderCommandRepository;
         private readonly IOrderQueryRepository _orderQueryRepository;
-        private readonly IOutBoxCommandRepository _outBoxCommandRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IValidator<OrderRequestDto> _orderValidator;
+        private readonly IPublishEndpoint _publishEndpoint;
 
         public OrderAppService(
              HttpClient httpClient
             , IHttpContextAccessor httpContext
             , IUserAppService userAppService
             , IOrderCommandRepository orderCommandRepository, IOrderQueryRepository orderQueryRepository
-            , IOutBoxCommandRepository outBoxCommandRepository
             , IUnitOfWork unitOfWork
-            ,IValidator<OrderRequestDto> orderValidator)
+            , IValidator<OrderRequestDto> orderValidator
+            , IPublishEndpoint publishEndpoint)
         {
             _httpClient = httpClient;
             _httpContext = httpContext;
             _userAppService = userAppService;
             _orderCommandRepository = orderCommandRepository;
             _orderQueryRepository = orderQueryRepository;
-            _outBoxCommandRepository = outBoxCommandRepository;
             _unitOfWork = unitOfWork;
             _orderValidator = orderValidator;
+            _publishEndpoint = publishEndpoint;
         }
 
         #region PlaceOrder
@@ -99,9 +98,22 @@ namespace OrderService.Application.Services.Order
                     ProductDetailId = detailResponse.Data.Id,
                 };
 
-
-                await AddOutboxMessagesAsync(orderRequestDto, detailResponse.Data);
                 await _orderCommandRepository.AddAsync(setOrder);
+
+                await _publishEndpoint.Publish(
+                    new BaseConfig.ProductDetailEventDto
+                    {
+                        Id = detailResponse.Data.Id,
+                        Quantity = orderRequestDto.Quantity,
+                    });
+
+                await _publishEndpoint.Publish(
+                    new InventoryEventDto
+                    {
+                        ProductDetailId = detailResponse.Data.Id,
+                        QuantityChange = -orderRequestDto.Quantity,
+                        UserId = _userAppService.GetCurrentUser()
+                    });
                 await _unitOfWork.SaveChangesAsync();
                 output.Message = "سفارش  با موفقیت ایجاد شد";
                 output.Success = true;
@@ -125,36 +137,6 @@ namespace OrderService.Application.Services.Order
             }
         }
 
-        #region OutBoxMessage
-        private async Task AddOutboxMessagesAsync(OrderRequestDto orderRequestDto, ProductDetailResponseDto detail)
-        {
-            var userId = _userAppService.GetCurrentUser();
-
-            var orderMessage = new OutBoxMessagesEntity
-            {
-                Event = "OrderCreatedEvent",
-                Content = JsonConvert.SerializeObject(new InventoryEventDto 
-                {
-                    ProductDetailId = detail.Id,
-                    QuantityChange = -orderRequestDto.Quantity,
-                    UserId = _userAppService.GetCurrentUser()
-                })
-            };
-
-            var productMessage = new OutBoxMessagesEntity
-            {
-                Event = "ReduceProductEvent",
-                Content = JsonConvert.SerializeObject(new ProductDetailEventDto
-                {
-                    Id = detail.Id,
-                    Quantity = detail.Quantity - orderRequestDto.Quantity,
-                })
-            };
-
-            await _outBoxCommandRepository.AddAsync(orderMessage);
-            await _outBoxCommandRepository.AddAsync(productMessage);
-        }
-        #endregion
 
         #region AddTokenToHeader
         private void AddBearerToken(HttpRequestMessage request, string token)

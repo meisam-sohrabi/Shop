@@ -15,7 +15,7 @@ namespace ProductService.Api.Controllers
         public CategoryController(ICategoryAppService categoryAppService)
         {
             _categoryAppService = categoryAppService;
-        }
+        } 
 
         [HttpPost("Create")]
         [Authorize(Roles = "admin")]

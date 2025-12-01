@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OrderService.Domain.Entities;
 using BaseConfig;
+using MassTransit;
 namespace OrderService.Infrastructure.EntityFrameWorkCore.AppDbContext
 {
     public class ApplicationDbContext : DbContext
@@ -23,6 +24,10 @@ namespace OrderService.Infrastructure.EntityFrameWorkCore.AppDbContext
 
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+            modelBuilder.AddInboxStateEntity();
+            modelBuilder.AddOutboxMessageEntity();  
+            modelBuilder.AddOutboxStateEntity();    
 
             #region Commented Old Config
             //modelBuilder.Entity<ProductEntity>().ToTable("Products");

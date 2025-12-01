@@ -1,17 +1,17 @@
-﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
-using AccountService.ApplicationContract.DTO.Base;
+﻿using AccountService.ApplicationContract.DTO.Base;
 using AccountService.ApplicationContract.DTO.UserPermission;
+using AccountService.ApplicationContract.Interfaces.UserPermission;
 using AccountService.Domain.Entities;
 using AccountService.InfrastructureContract.Interfaces;
 using AccountService.InfrastructureContract.Interfaces.Command.UserPermission;
 using AccountService.InfrastructureContract.Interfaces.Query.Account;
 using AccountService.InfrastructureContract.Interfaces.Query.Permission;
 using AccountService.InfrastructureContract.Interfaces.Query.UserPermission;
+using AutoMapper;
+using BaseConfig;
+using MassTransit;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
-using AccountService.ApplicationContract.Interfaces.UserPermission;
-using Newtonsoft.Json;
-using AccountService.InfrastructureContract.Interfaces.Command.OutBox;
 
 namespace AccountService.Application.Services.UserPermission
 {
@@ -23,7 +23,7 @@ namespace AccountService.Application.Services.UserPermission
         private readonly IAccountQueryRepository _accountQueryRepository;
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IOutBoxCommandRepository _outBoxCommandRepository;
+        private readonly IPublishEndpoint _publishEndpoint;
 
         public UserPermissionAppService(IUserPermissionCommandRepository userPermissionCommanRepository
             , IPermissionQueryRepository permissionQueryRepository,
@@ -31,7 +31,7 @@ namespace AccountService.Application.Services.UserPermission
             , IAccountQueryRepository accountQueryRepository
             , IMapper mapper,
             IUnitOfWork unitOfWork
-            ,IOutBoxCommandRepository outBoxCommandRepository)
+            , IPublishEndpoint publishEndpoint)
         {
             _userPermissionCommanRepository = userPermissionCommanRepository;
             _permissionQueryRepository = permissionQueryRepository;
@@ -39,7 +39,7 @@ namespace AccountService.Application.Services.UserPermission
             _accountQueryRepository = accountQueryRepository;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
-            _outBoxCommandRepository = outBoxCommandRepository;
+            _publishEndpoint = publishEndpoint;
         }
 
         #region Assign Permission
@@ -76,18 +76,12 @@ namespace AccountService.Application.Services.UserPermission
                 await _userPermissionCommanRepository.AssignPermissionToUser(mapped);
                 await _unitOfWork.SaveChangesAsync();
 
-
-                var outbox = new OutBoxMessageEntity
+                await _publishEndpoint.Publish(new UerPermissionEventDot
                 {
-                    Event = "UserPermission.Assigned",
-                    Content = JsonConvert.SerializeObject(new UserPermissionDto
-                    {
-                        UserId = mapped.UserId,
-                        PermissionId = mapped.PermissionId,
-                    })
-                };
+                    UserId = mapped.UserId,
+                    PermissionId = mapped.PermissionId,
+                });
 
-                await _outBoxCommandRepository.AddAsync(outbox);
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitTransactionAsync();
                 output.Message = $"پرمیژن  با موفقیت اختصاص داده شد";

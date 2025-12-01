@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using BaseConfig;
+using MassTransit;
 namespace AccountService.Infrastructure.EntityFrameWorkCore.AppDbContext
 {
     public class ApplicationDbContext : IdentityDbContext<CustomUserEntity>
@@ -20,6 +21,9 @@ namespace AccountService.Infrastructure.EntityFrameWorkCore.AppDbContext
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+            builder.AddInboxStateEntity();
+            builder.AddOutboxMessageEntity();
+            builder.AddOutboxStateEntity();
             base.OnModelCreating(builder);
         }
     }

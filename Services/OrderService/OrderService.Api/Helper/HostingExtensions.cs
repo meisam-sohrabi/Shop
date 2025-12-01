@@ -1,15 +1,9 @@
 ﻿using BaseConfig;
-using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OrderService.Application.Services.Order;
-using OrderService.Application.Services.OutBoxProcessor;
 using OrderService.ApplicationContract.Interfaces.Order;
-using OrderService.ApplicationContract.Validators;
-
-
-//using OrderService.Application.Services.Job;
 using OrderService.IocConfig;
 using System.Text;
 namespace OrderService.Api.Helper
@@ -21,9 +15,9 @@ namespace OrderService.Api.Helper
 
 
             builder.Services.AddControllers();
-            //builder.Services.AddOpenApi();
+            builder.Services.AddOpenApi();
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddHttpClient<IOrderAppService,OrderAppService>();
+            builder.Services.AddHttpClient<IOrderAppService, OrderAppService>();
             builder.Services.AddSignalR();
             builder.Services.AddSwaggerGen();
             builder.Services.AddHttpContextAccessor();
@@ -92,10 +86,7 @@ namespace OrderService.Api.Helper
             });
 
 
-            builder.Services.AddHostedService<OutBoxProcessor>();
-            //builder.Services.AddValidatorsFromAssemblyContaining<>();
 
-            builder.Services.AddValidatorsFromAssemblyContaining<OrderRequestDtoValidator>();
             //Stimulsoft.Base.StiLicense.Key = ApplicaitonConfiguration.stiLicense;
 
             return builder.Build();
@@ -107,7 +98,7 @@ namespace OrderService.Api.Helper
         public static WebApplication ConfigurePipelines(this WebApplication app)
         {
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
             {
                 //app.MapOpenApi();
                 app.UseSwagger();

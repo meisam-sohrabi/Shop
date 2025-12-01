@@ -1,5 +1,4 @@
-﻿using AccountService.Application.Services.Attributes;
-using AccountService.ApplicationContract.DTO.Base;
+﻿using AccountService.ApplicationContract.DTO.Base;
 using AccountService.ApplicationContract.DTO.Permission;
 using AccountService.ApplicationContract.DTO.UserPermission;
 using AccountService.ApplicationContract.Interfaces.Permission;
@@ -38,7 +37,6 @@ namespace AccountService.Api.Controllers
         }
 
         [HttpGet("GetAll")]
-        [ProductServiceAccess]
         public async Task<BaseResponseDto<List<ShowAllPermissions>>> GetAll()
         {
             return await _permissionAppService.GetAllPermissions();
@@ -52,7 +50,6 @@ namespace AccountService.Api.Controllers
         }
 
         [HttpGet("GetAllRawUserPermissions")]
-        [ProductServiceAccess]
         public async Task<BaseResponseDto<List<UserPermissionDto>>> GetAllUserPermissions()
         {
             return await _userPermissionAppService.GetAllUserPermissions();

@@ -1,8 +1,6 @@
 ﻿using BaseConfig;
-using FluentValidation;
 using GatewayService.Application.Services.Auth;
 using GatewayService.ApplicationContract.Interfaces.Auth;
-using GatewayService.ApplicationContract.Validations;
 using GatewayService.IocConfig;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -18,7 +16,6 @@ namespace GatewayService.Api.Helper
             // Add services to the container.
 
             builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
             builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy")); // section get the whole configuration.
             builder.Services.AddHttpClient<IAuthAppService, AuthAppService>();
@@ -83,16 +80,9 @@ namespace GatewayService.Api.Helper
                 });
             });
 
-            builder.Services.AddDistributedMemoryCache();
-            builder.Services.AddSession(option =>
-            {
-                option.IdleTimeout = TimeSpan.FromMinutes(5);
-                option.Cookie.HttpOnly = true;
-                option.Cookie.IsEssential = true;
-            });
 
 
-            builder.Services.AddValidatorsFromAssemblyContaining<LoginDtoValidator>();
+
 
 
             return builder.Build();
@@ -101,7 +91,7 @@ namespace GatewayService.Api.Helper
         public static WebApplication ConfigurePipelines(this WebApplication app)
         {
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
             {
                 app.MapOpenApi();
                 app.UseSwagger();

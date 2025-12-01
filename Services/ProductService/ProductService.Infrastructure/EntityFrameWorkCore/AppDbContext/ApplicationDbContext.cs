@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ProductService.Domain.Entities;
 using BaseConfig;
+using MassTransit;
 namespace ProductService.Infrastructure.EntityFrameWorkCore.AppDbContext
 {
     public class ApplicationDbContext : DbContext
@@ -21,7 +22,6 @@ namespace ProductService.Infrastructure.EntityFrameWorkCore.AppDbContext
         public DbSet<ProductBrandEntity> ProductBrands { get; set; }
         public DbSet<ProductDetailEntity> ProductDetails { get; set; }
         public DbSet<ProductImageEntity> ProductImages { get; set; }
-        public DbSet<OutBoxMessagesEntity> OutBox { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
 
@@ -117,6 +117,10 @@ namespace ProductService.Infrastructure.EntityFrameWorkCore.AppDbContext
             //    .OnDelete(DeleteBehavior.Restrict);
             //});
             #endregion
+
+            modelBuilder.AddInboxStateEntity();
+            modelBuilder.AddOutboxMessageEntity();
+            modelBuilder.AddOutboxStateEntity();
 
 
             base.OnModelCreating(modelBuilder);

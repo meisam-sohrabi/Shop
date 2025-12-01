@@ -1,7 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using MassTransit;
+using Microsoft.Extensions.DependencyInjection;
 using PricingService.Application.Services.Mapping;
+using PricingService.Application.Services.PriceConsumer;
 using PricingService.Application.Services.ProductPrice;
-using PricingService.Application.Services.RabbitPrice;
 using PricingService.Application.Services.User;
 using PricingService.ApplicationContract.Interfaces;
 using PricingService.ApplicationContract.Interfaces.ProductPrice;
@@ -25,8 +26,27 @@ namespace PricingService.IocConfig
             services.AddScoped<IProductPriceCommandRepository, ProductPriceCommandRepository>();
             services.AddScoped<IProductPriceQueryRepository, ProductPriceQueryRepository>();
             services.AddScoped<IProductPriceAppService, ProductPriceAppService>();
-            services.AddHostedService<PriceConsumerAppService>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+
+            #region MassTransit
+            services.AddMassTransit(bucConfigurator =>
+            {
+                bucConfigurator.SetKebabCaseEndpointNameFormatter();
+                bucConfigurator.AddConsumer<PriceInsertConsumer>();
+                bucConfigurator.UsingRabbitMq((context, cfg) =>
+                {
+                    cfg.Host("localhost", h =>
+                    {
+                        h.Username("guest");
+                        h.Password("guest");
+                    });
+                    cfg.ConfigureEndpoints(context);
+                });
+            });
+
+            #endregion
+
 
             return services;
         }

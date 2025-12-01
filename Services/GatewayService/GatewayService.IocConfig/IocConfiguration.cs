@@ -1,10 +1,12 @@
-﻿using GatewayService.Application.Services.Auth;
+﻿using FluentValidation;
+using GatewayService.Application.Services.Auth;
 using GatewayService.Application.Services.Captcha;
 using GatewayService.Application.Services.Cookie;
 using GatewayService.Application.Services.User;
 using GatewayService.ApplicationContract.Interfaces;
 using GatewayService.ApplicationContract.Interfaces.Auth;
 using GatewayService.ApplicationContract.Interfaces.Captcha;
+using GatewayService.ApplicationContract.Validations;
 using GatewayService.Domain.Entities;
 using GatewayService.Infrastructure.EntityFrameWorkCore.AppDbContext;
 using GatewayService.Infrastructure.EntityFrameWorkCore.Repository.Command.Security;
@@ -44,7 +46,25 @@ namespace GatewayService.IocConfig
             services.AddScoped<IRefreshTokenCommandRepository, RefreshTokenCommandRepository>();  
             services.AddScoped<IUserAppService, UserAppService>();  
             services.AddScoped<ICaptchaAppService, CaptchaAppService>();  
-            services.AddScoped<IUnitOfWork, UnitOfWork>();  
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+
+            #region cash-session
+            services.AddDistributedMemoryCache();
+            services.AddSession(option =>
+            {
+                option.IdleTimeout = TimeSpan.FromMinutes(5);
+                option.Cookie.HttpOnly = true;
+                option.Cookie.IsEssential = true;
+            });
+            #endregion
+
+
+            #region validation
+            services.AddValidatorsFromAssemblyContaining<LoginDtoValidator>();
+
+            #endregion
+
 
             return services;
         }

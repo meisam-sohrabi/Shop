@@ -1,8 +1,11 @@
 ﻿using BaseConfig;
+using MassTransit;
+
 //using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using PricingService.Application.Services.PriceConsumer;
 using PricingService.IocConfig;
 using System.Text;
 namespace PricingService.Api.Helper
@@ -14,7 +17,7 @@ namespace PricingService.Api.Helper
 
 
             builder.Services.AddControllers();
-            //builder.Services.AddOpenApi();
+            builder.Services.AddOpenApi();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSignalR();
             builder.Services.AddSwaggerGen();
@@ -76,29 +79,17 @@ namespace PricingService.Api.Helper
                     },
                 });
             });
+
+
+
+
             //builder.Services.AddStackExchangeRedisCache(option =>
             //{
             //    option.Configuration = "localhost:6379";
             //    option.InstanceName = "";
             //});
 
-            //builder.Services.AddQuartz(q =>
-            //{
-            //    var jobKey = new JobKey("product");
-            //    q.AddJob<JobsAppService>(j => j.WithIdentity(jobKey));
-            //    q.AddTrigger(t => t.ForJob(jobKey).WithIdentity("product-trigger")
-            //    .StartNow()
-            //    .WithSimpleSchedule(s => s.WithIntervalInMinutes(1)
-            //    .RepeatForever()));
-            //});
-            //builder.Services.AddQuartzHostedService(h =>
-            //{
-            //    h.WaitForJobsToComplete = true;
-            //});
 
-            //builder.Services.AddHostedService<ConsumerWorker>();
-
-            //builder.Services.AddValidatorsFromAssemblyContaining<CategoryDtoValidator>();
 
 
             //Stimulsoft.Base.StiLicense.Key = ApplicaitonConfiguration.stiLicense;
@@ -112,7 +103,7 @@ namespace PricingService.Api.Helper
         public static WebApplication ConfigurePipelines(this WebApplication app)
         {
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
             {
                 //app.MapOpenApi();
                 app.UseSwagger();

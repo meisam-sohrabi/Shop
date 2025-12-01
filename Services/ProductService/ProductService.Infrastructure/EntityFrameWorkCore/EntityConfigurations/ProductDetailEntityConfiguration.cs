@@ -13,6 +13,7 @@ namespace ProductService.Infrastructure.EntityFrameWorkCore.EntityConfigurations
             builder.Property(p => p.Size).IsRequired().HasMaxLength(30);
             builder.Property(c => c.Quantity).IsRequired();
             builder.Property(p => p.Description).HasMaxLength(350);
+            builder.Property(r => r.RowVersion).IsRowVersion();
             builder.HasOne(p => p.Product)
                 .WithMany(p => p.ProductDetails)
                 .HasForeignKey(e => e.ProductId)

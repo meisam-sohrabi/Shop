@@ -1,11 +1,8 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using BaseConfig;
+using InventoryService.IocConfig;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Quartz;
-using BaseConfig;
-//using InventoryService.Application.Services.Job;
-//using InventoryService.ApplicationContract.Validators.Category;
-using InventoryService.IocConfig;
 using System.Text;
 namespace InventoryService.Api.Helper
 {
@@ -16,7 +13,7 @@ namespace InventoryService.Api.Helper
 
 
             builder.Services.AddControllers();
-            //builder.Services.AddOpenApi();
+            builder.Services.AddOpenApi();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSignalR();
             builder.Services.AddSwaggerGen();
@@ -79,22 +76,8 @@ namespace InventoryService.Api.Helper
                 });
             });
 
-            //builder.Services.AddQuartz(q =>
-            //{
-            //    var jobKey = new JobKey("product");
-            //    q.AddJob<JobsAppService>(j => j.WithIdentity(jobKey));
-            //    q.AddTrigger(t => t.ForJob(jobKey).WithIdentity("product-trigger")
-            //    .StartNow()
-            //    .WithSimpleSchedule(s => s.WithIntervalInMinutes(1)
-            //    .RepeatForever()));
-            //});
-            //builder.Services.AddQuartzHostedService(h =>
-            //{
-            //    h.WaitForJobsToComplete = true;
-            //});
+            
 
-
-            //builder.Services.AddValidatorsFromAssemblyContaining<CategoryDtoValidator>();
 
 
             return builder.Build();
@@ -106,7 +89,7 @@ namespace InventoryService.Api.Helper
         public static WebApplication ConfigurePipelines(this WebApplication app)
         {
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
             {
                 //app.MapOpenApi();
                 app.UseSwagger();

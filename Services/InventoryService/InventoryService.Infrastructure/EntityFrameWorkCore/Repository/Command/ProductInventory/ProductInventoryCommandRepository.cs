@@ -13,10 +13,7 @@ namespace InventoryService.Infrastructure.EntityFrameWorkCore.Repository.Command
         {
             _context = context;
         }
-        public async Task Add(ProductInventoryEntity productInventory)
-        {
-          await _context.ProductInventories.AddAsync(productInventory);
-        }
+      
        
     }
 }
